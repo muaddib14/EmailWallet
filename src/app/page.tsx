@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { ArrowRight, Banknote, Check, Lock, ShieldCheck, X } from "lucide-react";
 import MobileMenuButton from "@/components/MobileMenuButton";
 import EarlyAccessForm from "@/components/EarlyAccessForm";
 import Marquee from "@/components/Marquee";
 import { WALLETS } from "@/components/wallet-data";
+import { NavConnectButton, HeroConnectButton } from "@/components/ConnectWalletButton";
 
 const THEM_POINTS = [
   "Needs a password, phone number, or account",
@@ -78,11 +80,11 @@ export default function Home() {
       <header className="relative">
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-4 pl-4">
           <nav className="flex mt-6 items-center justify-between">
-            <a href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <span className="text-xl font-semibold tracking-tight text-white font-geist">
                 Wallet Mail
               </span>
-            </a>
+            </Link>
 
             <div className="hidden md:flex md:gap-x-2 bg-white/5 border-white/10 border rounded-full pt-1 pr-1 pb-1 pl-1 backdrop-blur-lg gap-x-2 gap-y-1 items-center">
               <a href="#intelligence" className="hover:text-white text-sm font-medium text-white/80 font-geist pt-2 pr-3 pb-2 pl-3">
@@ -94,16 +96,8 @@ export default function Home() {
               <a href="#pricing" className="hover:text-white text-sm font-medium text-white/80 font-geist pt-2 pr-3 pb-2 pl-3">
                 Naming
               </a>
-              <div className="relative inline-block group text-xs rounded-full">
-                <a
-                  href="#application"
-                  className="animate-[slideInBlur_0.8s_ease-out_1.2s_forwards] relative z-10 overflow-hidden transition-[transform] duration-150 ease-out active:scale-[0.98] text-white bg-neutral-900/60 border-white/20 border pt-3 pr-6 pb-3 pl-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] text-xs rounded-full cursor-pointer inline-flex"
-                >
-                  <span className="z-10 inline-flex items-center gap-2 text-xs font-medium font-geist rounded-full relative">
-                    Connect Wallet
-                  </span>
-                  <span className="pointer-events-none absolute bottom-0 left-1/2 right-1/2 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-80 transition-[left,right] duration-500 ease-out group-hover:left-0 group-hover:right-0 text-xs rounded-full" />
-                </a>
+              <div className="relative inline-block group text-xs rounded-full animate-[slideInBlur_0.8s_ease-out_1.2s_forwards]">
+                <NavConnectButton />
               </div>
             </div>
 
@@ -127,21 +121,7 @@ export default function Home() {
             <div
               className="flex flex-col sm:flex-row animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.4s_both] mt-8 gap-x-3 gap-y-3 items-center justify-center"
             >
-              <a
-                href="#application"
-                className="group relative inline-flex min-w-[140px] cursor-pointer transition-all duration-[1000ms] ease-[cubic-bezier(0.15,0.83,0.66,1)] hover:-translate-y-[3px] hover:text-white shadow-[0_2.8px_2.2px_rgba(0,0,0,0.3),_0_6.7px_5.3px_rgba(0,0,0,0.35),_0_12.5px_10px_rgba(0,0,0,0.4)] overflow-hidden font-semibold text-neutral-400 tracking-tight bg-neutral-800 border-neutral-600 border rounded-full pt-[12px] pr-[20px] pb-[12px] pl-[20px] items-center justify-center"
-              >
-                <span className="relative z-10 font-medium rounded-full transition-all duration-500 ease-out group-hover:transform group-hover:translate-y-8 group-hover:opacity-0 group-hover:blur-md font-geist">
-                  Open Inbox
-                </span>
-                <span className="absolute inset-0 z-10 flex items-center justify-center transition-all duration-300 ease-in-out transform -translate-y-8 group-hover:translate-y-0 group-hover:opacity-100 group-hover:blur-none font-medium opacity-0 rounded-full blur-md font-geist">
-                  Connect &amp; Sign In
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-0 left-1/2 h-[1px] w-[70%] -translate-x-1/2 transition-all duration-[1000ms] ease-[cubic-bezier(0.15,0.83,0.66,1)] group-hover:opacity-80 bg-gradient-to-r from-transparent via-neutral-200 to-transparent rounded-full blur-[2px]"
-                />
-              </a>
+              <HeroConnectButton />
               <a
                 href="#services"
                 className="inline-flex items-center gap-2 hover:bg-white/10 text-base font-medium text-white/90 bg-white/5 border-white/10 border rounded-full pt-3 pr-6 pb-3 pl-6 backdrop-blur font-geist"

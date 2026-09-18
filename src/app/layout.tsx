@@ -3,6 +3,7 @@ import { Geist, Inter } from "next/font/google";
 import "./globals.css";
 import AuraBackground from "@/components/AuraBackground";
 import ViewportAnimations from "@/components/ViewportAnimations";
+import Providers from "@/components/Providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,11 +31,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       data-theme="dark"
     >
       <body className="antialiased text-white bg-black h-full overflow-x-hidden font-sans">
-        <AuraBackground />
-        <ViewportAnimations />
-        <div className="site-content overflow-y-auto w-full h-full">
-          {children}
-        </div>
+        <Providers>
+          <AuraBackground />
+          <ViewportAnimations />
+          <div className="site-content overflow-y-auto w-full h-full">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );
