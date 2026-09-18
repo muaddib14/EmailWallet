@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Minus, Maximize2, Minimize2, X, Trash2 } from "lucide-react";
 import { useSignMessage } from "wagmi";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
@@ -30,6 +30,8 @@ export default function ComposeModal({
   const [body, setBody] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [minimized, setMinimized] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,62 +75,128 @@ export default function ComposeModal({
     }
   }
 
+  const panelSize = expanded
+    ? "inset-6 sm:inset-12"
+    : "bottom-0 right-6 w-full max-w-[420px] h-[480px] max-h-[calc(100vh-2rem)]";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white shadow-2xl overflow-hidden"
+    <form
+      onSubmit={handleSubmit}
+      className={`fixed z-50 flex flex-col rounded-t-xl border border-neutral-200 border-b-0 bg-white shadow-2xl overflow-hidden transition-all ${
+        minimized ? "bottom-0 right-6 w-full max-w-[420px] h-12" : panelSize
+      }`}
+    >
+      {/* Header — Gmail-style light title bar */}
+      <div
+        onClick={() => minimized && setMinimized(false)}
+        className={`flex items-center justify-between px-4 py-2.5 bg-neutral-100 border-b border-neutral-200 shrink-0 ${
+          minimized ? "cursor-pointer" : ""
+        }`}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
-          <h2 className="text-sm font-medium text-neutral-900 font-geist">New message</h2>
+        <h2 className="text-sm font-medium text-neutral-800 font-geist truncate pr-2">
+          {subject || "New message"}
+        </h2>
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
-            onClick={onClose}
-            className="p-1 rounded text-neutral-400 hover:text-neutral-900 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMinimized((v) => !v);
+            }}
+            className="p-1.5 rounded text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-colors"
+            title={minimized ? "Restore" : "Minimize"}
           >
-            <X className="w-4 h-4" />
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+              setMinimized(false);
+            }}
+            className="p-1.5 rounded text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-colors"
+            title={expanded ? "Collapse" : "Expand"}
+          >
+            {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="p-1.5 rounded text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-colors"
+            title="Close"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
 
-        <div className="p-5 space-y-3">
-          <input
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            placeholder="To: 0x... or maya.mail"
-            required
-            className="w-full bg-neutral-50 border border-neutral-200 focus:border-green-600 focus:bg-white rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 transition-colors"
-          />
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Subject"
-            required
-            className="w-full bg-neutral-50 border border-neutral-200 focus:border-green-600 focus:bg-white rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 transition-colors"
-          />
+      {!minimized && (
+        <>
+          <div className="px-4 shrink-0">
+            <div className="flex items-center border-b border-neutral-200 py-2.5">
+              <label htmlFor="composeTo" className="text-sm text-neutral-400 font-geist w-12 shrink-0">
+                To
+              </label>
+              <input
+                id="composeTo"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                placeholder="0x... or maya.mail"
+                required
+                className="flex-1 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
+              />
+            </div>
+            <div className="flex items-center border-b border-neutral-200 py-2.5">
+              <label htmlFor="composeSubject" className="text-sm text-neutral-400 font-geist w-12 shrink-0">
+                Subject
+              </label>
+              <input
+                id="composeSubject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                required
+                className="flex-1 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
+              />
+            </div>
+          </div>
+
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Write your message..."
-            rows={8}
             required
-            className="w-full bg-neutral-50 border border-neutral-200 focus:border-green-600 focus:bg-white rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 resize-none transition-colors"
+            className="flex-1 w-full px-4 py-3 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none resize-none"
           />
-          {error && <p className="text-xs text-red-600 font-geist">{error}</p>}
-        </div>
 
-        <div className="flex items-center justify-between px-5 py-4 border-t border-neutral-200">
-          <p className="text-[11px] text-neutral-400 font-geist">
+          {error && <p className="px-4 pb-2 text-xs text-red-600 font-geist shrink-0">{error}</p>}
+
+          <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-100 shrink-0">
+            <button
+              type="submit"
+              disabled={status === "sending"}
+              className="inline-flex items-center h-9 px-6 rounded-full bg-green-600 text-white text-sm font-medium font-geist hover:bg-green-700 transition disabled:opacity-60 disabled:cursor-wait"
+            >
+              {status === "sending" ? "Sending..." : "Send"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              title="Discard draft"
+              className="p-2 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          <p className="px-4 pb-2 text-[10px] text-neutral-300 font-geist shrink-0">
             Encrypted in your browser as {myAddress.slice(0, 6)}...{myAddress.slice(-4)}
           </p>
-          <button
-            type="submit"
-            disabled={status === "sending"}
-            className="inline-flex items-center justify-center h-9 px-5 rounded-lg bg-neutral-900 text-white text-sm font-medium font-geist hover:bg-neutral-800 transition disabled:opacity-60 disabled:cursor-wait"
-          >
-            {status === "sending" ? "Sending..." : "Send"}
-          </button>
-        </div>
-      </form>
-    </div>
+        </>
+      )}
+    </form>
   );
 }

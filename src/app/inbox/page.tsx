@@ -141,7 +141,7 @@ function InboxApp({ myAddress }: { myAddress: string }) {
         )}
       </div>
 
-      <ComposeFab onClick={() => setCompose({})} />
+      {!compose && <ComposeFab onClick={() => setCompose({})} />}
 
       {compose && (
         <ComposeModal
