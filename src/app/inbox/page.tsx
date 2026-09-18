@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { useInboxMessages, type DecryptedMessage } from "@/lib/useInboxMessages";
 import { HeroConnectButton } from "@/components/ConnectWalletButton";
+import AuraBackground from "@/components/AuraBackground";
 import InboxSidebar from "@/components/inbox/InboxSidebar";
 import InboxTopbar from "@/components/inbox/InboxTopbar";
 import MessageListPanel from "@/components/inbox/MessageListPanel";
@@ -93,6 +94,7 @@ function InboxApp({ myAddress }: { myAddress: string }) {
 
   return (
     <div className="h-screen flex overflow-hidden">
+      <AuraBackground variant="fullscreen" overlayOpacity={65} />
       <InboxSidebar
         activeFolder={folder}
         counts={counts}
