@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight, Banknote, Check, Lock, ShieldCheck, X } from "lucide-react";
 import SoftGlow from "@/components/SoftGlow";
 import MobileMenuButton from "@/components/MobileMenuButton";
-import EarlyAccessForm from "@/components/EarlyAccessForm";
 import Marquee from "@/components/Marquee";
 import { WALLETS } from "@/components/wallet-data";
 import { NavConnectButton, HeroConnectButton } from "@/components/ConnectWalletButton";
@@ -468,24 +467,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. APPLICATION FORM */}
-      <section
-        className="overflow-hidden relative py-24 bg-neutral-50 border-t border-neutral-100"
-        id="application"
-      >
+      {/* 5. FINAL CTA */}
+      <section className="relative py-28 bg-neutral-900 overflow-hidden" id="application">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(circle at 50% 0%, rgba(34,197,94,0.18), transparent 60%)",
+          }}
+        />
         <div className="relative max-w-2xl mx-auto text-center px-6 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 shadow-sm text-neutral-600">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-            <span className="text-xs font-normal font-geist">Early Access</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+            <span className="text-xs font-normal font-geist">No waitlist, no gatekeeping</span>
           </div>
-          <h2 className="mt-4 text-3xl sm:text-5xl font-geist tracking-tighter text-neutral-900">
-            Get Early Access
+          <h2 className="mt-4 text-3xl sm:text-5xl font-geist tracking-tighter text-white">
+            Your wallet already proves who you are.
           </h2>
-          <p className="mt-3 text-neutral-500 font-geist text-sm sm:text-base">
-            Robinhood Chain wallets get priority access to name minting.
+          <p className="mt-3 text-white/60 font-geist text-sm sm:text-base max-w-md mx-auto">
+            No form to fill out, no email to confirm. Connect and you&apos;re already signed in.
           </p>
 
-          <EarlyAccessForm />
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <HeroConnectButton />
+            <a
+              href="#pricing"
+              className="inline-flex items-center gap-2 text-base font-medium text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-full pt-3 pr-6 pb-3 pl-6 font-geist transition-colors"
+            >
+              See Naming Fees
+            </a>
+          </div>
         </div>
       </section>
 

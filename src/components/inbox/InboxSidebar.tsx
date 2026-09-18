@@ -36,10 +36,10 @@ export default function InboxSidebar({
   onSelectFolder: (folder: Folder) => void;
 }) {
   return (
-    <aside className="w-64 shrink-0 border-r border-white/10 flex flex-col h-full">
+    <aside className="w-64 shrink-0 border-r border-neutral-200 bg-neutral-50 flex flex-col h-full">
       <div className="p-4">
         <Link href="/" className="flex items-center gap-2 px-2">
-          <span className="text-lg font-semibold tracking-tight text-white font-geist">
+          <span className="text-lg font-semibold tracking-tight text-neutral-900 font-geist">
             Wallet Mail
           </span>
         </Link>
@@ -55,7 +55,9 @@ export default function InboxSidebar({
               key={folder}
               onClick={() => onSelectFolder(folder)}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-geist transition-colors ${
-                isActive ? "bg-white/10 text-white" : "text-white/60 hover:text-white hover:bg-white/5"
+                isActive
+                  ? "bg-white text-neutral-900 shadow-sm border border-neutral-200"
+                  : "text-neutral-500 hover:text-neutral-900 hover:bg-white/60"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -63,27 +65,27 @@ export default function InboxSidebar({
                 {FOLDER_LABELS[folder]}
               </span>
               {!!count && count > 0 && (
-                <span className="text-[11px] text-white/40 font-geist">{count}</span>
+                <span className="text-[11px] text-neutral-400 font-geist">{count}</span>
               )}
             </button>
           );
         })}
 
-        <p className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-white/30 font-geist">
+        <p className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-neutral-400 font-geist">
           People
         </p>
-        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-neutral-500 hover:text-neutral-900 hover:bg-white/60 transition-colors">
           <Users className="w-4 h-4" />
           Contacts
         </button>
-        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-neutral-500 hover:text-neutral-900 hover:bg-white/60 transition-colors">
           <Bell className="w-4 h-4" />
           Notifications
         </button>
       </nav>
 
-      <div className="p-2 border-t border-white/10">
-        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+      <div className="p-2 border-t border-neutral-200">
+        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-neutral-500 hover:text-neutral-900 hover:bg-white/60 transition-colors">
           <Settings className="w-4 h-4" />
           Settings
         </button>

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { useInboxMessages, type DecryptedMessage } from "@/lib/useInboxMessages";
 import { HeroConnectButton } from "@/components/ConnectWalletButton";
-import AuraBackground from "@/components/AuraBackground";
 import InboxSidebar from "@/components/inbox/InboxSidebar";
 import InboxTopbar from "@/components/inbox/InboxTopbar";
 import MessageListPanel from "@/components/inbox/MessageListPanel";
@@ -18,11 +17,11 @@ export default function InboxPage() {
 
   if (!isAuthenticated || !address) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-6 gap-6">
-        <h1 className="text-3xl font-geist tracking-tighter text-white">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center px-6 gap-6">
+        <h1 className="text-3xl font-geist tracking-tighter text-neutral-900">
           Connect your wallet to open your inbox
         </h1>
-        <p className="text-white/60 font-geist max-w-md">
+        <p className="text-neutral-500 font-geist max-w-md">
           Your inbox is derived entirely from your wallet signature — there&apos;s nothing to
           load until you sign in.
         </p>
@@ -94,8 +93,7 @@ function InboxApp({ myAddress }: { myAddress: string }) {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden">
-      <AuraBackground variant="fullscreen" overlayOpacity={65} />
+    <div className="h-screen flex overflow-hidden bg-white">
       <InboxSidebar
         activeFolder={folder}
         counts={counts}
@@ -137,8 +135,8 @@ function InboxApp({ myAddress }: { myAddress: string }) {
         </div>
 
         {error && (
-          <div className="px-6 py-2 border-t border-red-500/20 bg-red-500/5">
-            <p className="text-xs text-red-400 font-geist">{error}</p>
+          <div className="px-6 py-2 border-t border-red-200 bg-red-50">
+            <p className="text-xs text-red-600 font-geist">{error}</p>
           </div>
         )}
       </div>
