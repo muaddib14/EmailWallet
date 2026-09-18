@@ -10,6 +10,7 @@ import InboxTopbar from "@/components/inbox/InboxTopbar";
 import MessageListPanel from "@/components/inbox/MessageListPanel";
 import MessageDetailPanel from "@/components/inbox/MessageDetailPanel";
 import ComposeModal from "@/components/inbox/ComposeModal";
+import ComposeFab from "@/components/inbox/ComposeFab";
 import type { Folder } from "@/components/inbox/types";
 
 export default function InboxPage() {
@@ -102,7 +103,6 @@ function InboxApp({ myAddress }: { myAddress: string }) {
           setFolder(f);
           setSelectedId(null);
         }}
-        onCompose={() => setCompose({})}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -142,6 +142,8 @@ function InboxApp({ myAddress }: { myAddress: string }) {
           </div>
         )}
       </div>
+
+      <ComposeFab onClick={() => setCompose({})} />
 
       {compose && (
         <ComposeModal
