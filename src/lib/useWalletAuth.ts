@@ -12,6 +12,12 @@ export type AuthStep = "disconnected" | "connecting" | "signing" | "ready";
  *    sets an httpOnly cookie for a real 24h server-side session
  * 2) an encryption-key signature -> kept client-side only; it's the seed
  *    for deriving the E2E encryption key, so it must never leave the browser
+ *
+ * `step` describes where the user is in the flow; `isBusy` is the only thing
+ * that should disable the button. Keeping those separate matters because a
+ * rejected or failed signature leaves the wallet connected but unsigned —
+ * that's still "step: signing", and the button needs to stay clickable so
+ * the user can retry instead of getting stuck.
  */
 export function useWalletAuth() {
   const { address, isConnected } = useAccount();
@@ -21,6 +27,7 @@ export function useWalletAuth() {
 
   const [sessionSignature, setSessionSignature] = useState<string | null>(null);
   const [encryptionSignature, setEncryptionSignature] = useState<string | null>(null);
+  const [isSigning, setIsSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const step: AuthStep = useMemo(() => {
@@ -29,8 +36,11 @@ export function useWalletAuth() {
     return "ready";
   }, [isConnected, isConnecting, sessionSignature, encryptionSignature]);
 
+  const isBusy = isConnecting || isSigning;
+
   const connectAndSign = useCallback(async () => {
     setError(null);
+    setIsSigning(true);
     try {
       let currentAddress = address;
 
@@ -67,14 +77,18 @@ export function useWalletAuth() {
       });
       setEncryptionSignature(encryptionKey);
     } catch (err) {
+      console.error("[useWalletAuth] connectAndSign failed:", err);
       const message = err instanceof Error ? err.message : "Connection was rejected.";
       setError(message);
+    } finally {
+      setIsSigning(false);
     }
   }, [address, isConnected, connectors, connectAsync, signMessageAsync]);
 
   const signOut = useCallback(() => {
     setSessionSignature(null);
     setEncryptionSignature(null);
+    setError(null);
     disconnect();
     void fetch("/api/session", { method: "DELETE" });
   }, [disconnect]);
@@ -83,6 +97,7 @@ export function useWalletAuth() {
     address,
     step,
     error,
+    isBusy,
     connectAndSign,
     signOut,
     isAuthenticated: step === "ready",
