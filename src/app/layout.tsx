@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Inter } from "next/font/google";
 import "./globals.css";
-import AuraBackground from "@/components/AuraBackground";
 import ViewportAnimations from "@/components/ViewportAnimations";
 import Providers from "@/components/Providers";
 
@@ -32,7 +31,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="antialiased text-white bg-black h-full overflow-x-hidden font-sans">
         <Providers>
-          <AuraBackground />
           <ViewportAnimations />
           <div className="site-content overflow-y-auto w-full h-full">
             {children}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Banknote, Check, Lock, ShieldCheck, X } from "lucide-react";
+import AuraBackground from "@/components/AuraBackground";
 import MobileMenuButton from "@/components/MobileMenuButton";
 import EarlyAccessForm from "@/components/EarlyAccessForm";
 import Marquee from "@/components/Marquee";
@@ -77,6 +78,7 @@ const SHIP_LOG = [
 export default function Home() {
   return (
     <>
+      <AuraBackground />
       <header className="relative">
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-4 pl-4">
           <nav className="flex mt-6 items-center justify-between">
