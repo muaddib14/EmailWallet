@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useAccount, useConnect, useDisconnect, useSignMessage } from "wagmi";
 import { SESSION_MESSAGE, ENCRYPTION_MESSAGE } from "@/lib/authMessages";
+import { deriveKeyPair, publicKeyToBase64, type BoxKeyPair } from "@/lib/crypto";
 
 export type AuthStep = "disconnected" | "connecting" | "signing" | "ready";
 
@@ -20,6 +21,8 @@ export type WalletAuthValue = {
   connectAndSign: () => Promise<void>;
   signOut: () => void;
   isAuthenticated: boolean;
+  /** NaCl box keypair derived from the encryption signature. Secret key never leaves the browser. */
+  keyPair: BoxKeyPair | null;
 };
 
 export const WalletAuthContext = createContext<WalletAuthValue | null>(null);
@@ -45,6 +48,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
 
   const [sessionSignature, setSessionSignature] = useState<string | null>(null);
   const [encryptionSignature, setEncryptionSignature] = useState<string | null>(null);
+  const [keyPair, setKeyPair] = useState<BoxKeyPair | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,7 +97,20 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
       const encryptionKey = await signMessageAsync({
         message: ENCRYPTION_MESSAGE(currentAddress),
       });
+      const pair = deriveKeyPair(encryptionKey);
+      setKeyPair(pair);
       setEncryptionSignature(encryptionKey);
+
+      // Publish only the public half so others can encrypt to this wallet.
+      // Failure here shouldn't block sign-in — it just means composing to
+      // this address won't work for other people until it succeeds later.
+      fetch("/api/wallets/publish-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ encryptionPublicKey: publicKeyToBase64(pair.publicKey) }),
+      }).catch((publishError) => {
+        console.error("[WalletAuthProvider] failed to publish encryption key:", publishError);
+      });
     } catch (err) {
       console.error("[WalletAuthProvider] connectAndSign failed:", err);
       const message = err instanceof Error ? err.message : "Connection was rejected.";
@@ -106,6 +123,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(() => {
     setSessionSignature(null);
     setEncryptionSignature(null);
+    setKeyPair(null);
     setError(null);
     disconnect();
     void fetch("/api/session", { method: "DELETE" });
@@ -119,6 +137,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     connectAndSign,
     signOut,
     isAuthenticated: step === "ready",
+    keyPair,
   };
 
   return <WalletAuthContext.Provider value={value}>{children}</WalletAuthContext.Provider>;

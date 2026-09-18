@@ -20,6 +20,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1",
     "viem": "^2.56.7",
     "wagmi": "^3.7.7"
   },
