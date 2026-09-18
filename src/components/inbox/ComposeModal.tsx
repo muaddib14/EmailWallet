@@ -1,19 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useSignMessage } from "wagmi";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
 import { encryptFor, hashPlaintext } from "@/lib/crypto";
 
-type Status = "idle" | "sending" | "sent" | "error";
+type Status = "idle" | "sending" | "error";
 
-export default function ComposeForm({ myAddress }: { myAddress: string }) {
+export default function ComposeModal({
+  myAddress,
+  initialTo,
+  initialSubject,
+  onClose,
+  onSent,
+}: {
+  myAddress: string;
+  initialTo?: string;
+  initialSubject?: string;
+  onClose: () => void;
+  onSent: () => void;
+}) {
   const { keyPair } = useWalletAuth();
   const { signMessageAsync } = useSignMessage();
 
-  const [to, setTo] = useState("");
-  const [subject, setSubject] = useState("");
+  const [to, setTo] = useState(initialTo ?? "");
+  const [subject, setSubject] = useState(initialSubject ?? "");
   const [body, setBody] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +46,6 @@ export default function ComposeForm({ myAddress }: { myAddress: string }) {
       const subjectCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, subject);
       const bodyCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, body);
       const messageHash = hashPlaintext(subject, body);
-
       const senderSignature = await signMessageAsync({ message: { raw: messageHash } });
 
       const res = await fetch("/api/messages", {
@@ -53,11 +65,8 @@ export default function ComposeForm({ myAddress }: { myAddress: string }) {
         throw new Error(errBody.error ?? "Server rejected the message.");
       }
 
-      setStatus("sent");
-      setTo("");
-      setSubject("");
-      setBody("");
-      setTimeout(() => setStatus("idle"), 2000);
+      onSent();
+      onClose();
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Failed to send.");
@@ -65,66 +74,61 @@ export default function ComposeForm({ myAddress }: { myAddress: string }) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl border border-white/10 bg-white/5 p-6 h-fit sticky top-6"
-    >
-      <h2 className="text-lg font-medium text-white font-geist mb-4">Compose</h2>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-lg rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <h2 className="text-sm font-medium text-white font-geist">New message</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded text-white/40 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-      <div className="space-y-3">
-        <div>
-          <label htmlFor="composeTo" className="text-xs text-white/40 font-geist mb-1.5 block">
-            To (address or .mail name)
-          </label>
+        <div className="p-5 space-y-3">
           <input
-            id="composeTo"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="0x... or maya.mail"
+            placeholder="To: 0x... or maya.mail"
             required
             className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30 text-white"
           />
-        </div>
-        <div>
-          <label htmlFor="composeSubject" className="text-xs text-white/40 font-geist mb-1.5 block">
-            Subject
-          </label>
           <input
-            id="composeSubject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
+            placeholder="Subject"
             required
             className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30 text-white"
           />
-        </div>
-        <div>
-          <label htmlFor="composeBody" className="text-xs text-white/40 font-geist mb-1.5 block">
-            Message
-          </label>
           <textarea
-            id="composeBody"
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            rows={6}
+            placeholder="Write your message..."
+            rows={8}
             required
             className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30 resize-none text-white"
           />
+          {error && <p className="text-xs text-red-400 font-geist">{error}</p>}
         </div>
 
-        <button
-          type="submit"
-          disabled={status === "sending"}
-          className="w-full inline-flex items-center justify-center h-10 rounded-lg bg-white text-black text-sm font-medium font-geist hover:bg-neutral-200 transition disabled:opacity-60 disabled:cursor-wait"
-        >
-          {status === "sending" ? "Encrypting & Sending..." : status === "sent" ? "Sent ✓" : "Send Encrypted Mail"}
-        </button>
-
-        {error && <p className="text-xs text-red-400 font-geist">{error}</p>}
-        <p className="text-[11px] text-white/30 font-geist">
-          Signed in as {myAddress.slice(0, 6)}...{myAddress.slice(-4)}. Subject and body are
-          encrypted in your browser before they ever leave it.
-        </p>
-      </div>
-    </form>
+        <div className="flex items-center justify-between px-5 py-4 border-t border-white/10">
+          <p className="text-[11px] text-white/30 font-geist">
+            Encrypted in your browser as {myAddress.slice(0, 6)}...{myAddress.slice(-4)}
+          </p>
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="inline-flex items-center justify-center h-9 px-5 rounded-lg bg-white text-black text-sm font-medium font-geist hover:bg-neutral-200 transition disabled:opacity-60 disabled:cursor-wait"
+          >
+            {status === "sending" ? "Sending..." : "Send"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
