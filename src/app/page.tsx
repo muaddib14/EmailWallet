@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Banknote, Check, Lock, ShieldCheck, X } from "lucide-react";
-import AuraBackground from "@/components/AuraBackground";
+import SoftGlow from "@/components/SoftGlow";
 import MobileMenuButton from "@/components/MobileMenuButton";
 import EarlyAccessForm from "@/components/EarlyAccessForm";
 import Marquee from "@/components/Marquee";
@@ -77,25 +77,25 @@ const SHIP_LOG = [
 
 export default function Home() {
   return (
-    <>
-      <AuraBackground />
+    <div className="bg-white text-neutral-900 min-h-screen">
+      <SoftGlow />
       <header className="relative">
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-4 pl-4">
           <nav className="flex mt-6 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-semibold tracking-tight text-white font-geist">
+              <span className="text-xl font-semibold tracking-tight text-neutral-900 font-geist">
                 Wallet Mail
               </span>
             </Link>
 
-            <div className="hidden md:flex md:gap-x-2 bg-white/5 border-white/10 border rounded-full pt-1 pr-1 pb-1 pl-1 backdrop-blur-lg gap-x-2 gap-y-1 items-center">
-              <a href="#intelligence" className="hover:text-white text-sm font-medium text-white/80 font-geist pt-2 pr-3 pb-2 pl-3">
+            <div className="hidden md:flex md:gap-x-2 bg-white border-neutral-200 border rounded-full pt-1 pr-1 pb-1 pl-1 shadow-sm gap-x-2 gap-y-1 items-center">
+              <a href="#intelligence" className="hover:text-neutral-900 text-sm font-medium text-neutral-500 font-geist pt-2 pr-3 pb-2 pl-3">
                 Protocol
               </a>
-              <a href="#services" className="px-3 py-2 text-sm font-medium text-white/80 hover:text-white font-geist">
+              <a href="#services" className="px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 font-geist">
                 Features
               </a>
-              <a href="#pricing" className="hover:text-white text-sm font-medium text-white/80 font-geist pt-2 pr-3 pb-2 pl-3">
+              <a href="#pricing" className="hover:text-neutral-900 text-sm font-medium text-neutral-500 font-geist pt-2 pr-3 pb-2 pl-3">
                 Naming
               </a>
               <div className="relative inline-block group text-xs rounded-full animate-[slideInBlur_0.8s_ease-out_1.2s_forwards]">
@@ -106,16 +106,16 @@ export default function Home() {
             <MobileMenuButton />
           </nav>
 
-          <section className="sm:pt-20 md:pt-48 md:pb-24 text-center max-w-5xl z-10 mr-auto ml-auto pt-20 pb-32 relative">
+          <section className="sm:pt-20 md:pt-40 md:pb-24 text-center max-w-5xl z-10 mr-auto ml-auto pt-20 pb-32 relative">
             <h1
-              className="sm:text-6xl md:text-7xl animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_forwards] text-4xl tracking-tighter font-geist opacity-0 max-w-5xl mr-auto ml-auto"
+              className="sm:text-6xl md:text-7xl animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_forwards] text-4xl tracking-tighter font-geist opacity-0 max-w-5xl mr-auto ml-auto text-neutral-900"
             >
               Your Wallet Is Your Mailbox.
               <br />
               Encrypted. Verified. Yours.
             </h1>
             <p
-              className="sm:text-lg animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] text-base font-normal text-white/70 font-geist max-w-2xl mt-6 mr-auto ml-auto"
+              className="sm:text-lg animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] text-base font-normal text-neutral-500 font-geist max-w-2xl mt-6 mr-auto ml-auto"
             >
               No accounts, no passwords. Sign in with any EVM wallet, message any address by
               name, and every message is signed and end-to-end encrypted on Robinhood Chain.
@@ -126,18 +126,22 @@ export default function Home() {
               <HeroConnectButton />
               <a
                 href="#services"
-                className="inline-flex items-center gap-2 hover:bg-white/10 text-base font-medium text-white/90 bg-white/5 border-white/10 border rounded-full pt-3 pr-6 pb-3 pl-6 backdrop-blur font-geist"
+                className="inline-flex items-center gap-2 hover:bg-neutral-50 text-base font-medium text-neutral-700 bg-white border-neutral-200 border rounded-full pt-3 pr-6 pb-3 pl-6 shadow-sm font-geist transition-colors"
               >
                 How It Works
               </a>
             </div>
+
+            <p className="mt-8 text-xs text-neutral-400 font-geist">
+              Trusted by wallet-native builders · Signed, not stored in plaintext
+            </p>
           </section>
         </div>
       </header>
 
       {/* Trusted By */}
-      <section className="z-10 font-semibold max-w-7xl mt-12 mr-auto ml-auto pb-16 relative">
-        <p className="animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.5s_both] text-lg font-medium text-white/50 font-geist text-center mb-6 px-6">
+      <section className="z-10 font-semibold max-w-7xl mt-4 mr-auto ml-auto pb-16 relative">
+        <p className="animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.5s_both] text-lg font-medium text-neutral-400 font-geist text-center mb-6 px-6">
           Works with the wallets you already have
         </p>
         <div className="animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.6s_both]">
@@ -146,37 +150,37 @@ export default function Home() {
       </section>
 
       {/* 1. THE MANIFESTO */}
-      <section className="border-y border-white/5 pt-24 pb-24 relative" id="intelligence">
+      <section className="border-y border-neutral-100 bg-neutral-50 pt-24 pb-24 relative" id="intelligence">
         <div className="sm:px-6 lg:px-8 text-center max-w-4xl mr-auto ml-auto pr-6 pl-6">
-          <h2 className="uppercase animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both] text-xs font-semibold text-green-500 tracking-wider font-geist inline-block border border-green-500/20 rounded-full px-3 py-1 bg-green-500/5">
+          <h2 className="uppercase animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both] text-xs font-semibold text-green-700 tracking-wider font-geist inline-block border border-green-200 rounded-full px-3 py-1 bg-green-50">
             The Protocol
           </h2>
-          <h3 className="mt-4 text-3xl sm:text-5xl font-geist tracking-tighter text-white animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
+          <h3 className="mt-4 text-3xl sm:text-5xl font-geist tracking-tighter text-neutral-900 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
             Email was built for accounts. <br />
             Web3 needs something built for wallets.
           </h3>
 
-          <div className="sm:p-12 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] bg-neutral-900/50 border-white/10 border rounded-2xl ring-slate-50 ring-1 mt-10 pt-8 pr-8 pb-8 pl-8 relative">
+          <div className="sm:p-12 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] bg-white border-neutral-200 border rounded-2xl shadow-sm mt-10 pt-8 pr-8 pb-8 pl-8 relative">
             <svg
-              className="absolute top-6 left-6 h-8 w-8 text-white/20 transform -translate-x-2 -translate-y-2"
+              className="absolute top-6 left-6 h-8 w-8 text-neutral-200 transform -translate-x-2 -translate-y-2"
               fill="currentColor"
               viewBox="0 0 32 32"
               aria-hidden="true"
             >
               <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
             </svg>
-            <p className="sm:text-xl leading-relaxed text-lg text-white/80 font-geist relative">
+            <p className="sm:text-xl leading-relaxed text-lg text-neutral-700 font-geist relative">
               Crypto communities are still stuck DMing on platforms that don&apos;t know a
               wallet from a username. Wallet Mail signs every message with your key, encrypts
               it before it leaves your browser, and lets anyone verify who really sent it — no
               account required, no server that can read your inbox.
             </p>
             <div className="mt-6 flex items-center justify-center gap-3">
-              <div className="h-px w-12 bg-white/20" />
-              <span className="text-sm font-medium text-white/50 font-geist">
+              <div className="h-px w-12 bg-neutral-200" />
+              <span className="text-sm font-medium text-neutral-400 font-geist">
                 Built on Robinhood Chain
               </span>
-              <div className="h-px w-12 bg-white/20" />
+              <div className="h-px w-12 bg-neutral-200" />
             </div>
           </div>
         </div>
@@ -186,45 +190,45 @@ export default function Home() {
       <section className="relative py-24 overflow-hidden">
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-6 pl-6">
           <div className="text-center mb-16 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter text-neutral-900">
               Built for Wallets, Not Inboxes
             </h2>
-            <p className="mt-4 text-white/60 font-geist max-w-2xl mx-auto">
+            <p className="mt-4 text-neutral-500 font-geist max-w-2xl mx-auto">
               Traditional email and Telegram DMs weren&apos;t designed for on-chain identity.
               We were.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
-            <div className="p-8 rounded-2xl border border-white/5 bg-white/[0.02] flex flex-col gap-6 opacity-60 grayscale transition hover:opacity-80 hover:grayscale-0">
-              <h3 className="text-xl font-medium text-white/50 font-geist">
+            <div className="p-8 rounded-2xl border border-neutral-200 bg-neutral-50 flex flex-col gap-6">
+              <h3 className="text-xl font-medium text-neutral-500 font-geist">
                 Email &amp; Telegram DMs
               </h3>
               <ul className="space-y-4">
                 {THEM_POINTS.map((point) => (
-                  <li key={point} className="flex items-center gap-3 text-white/50">
-                    <X className="w-5 h-5 text-green-500/50" />
+                  <li key={point} className="flex items-center gap-3 text-neutral-500">
+                    <X className="w-5 h-5 text-neutral-400" />
                     <span className="font-geist">{point}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="relative p-8 rounded-2xl border flex flex-col gap-6 shadow-[0_0_50px_-12px_rgba(99,102,241,0.2)] border-green-500/30 bg-green-900/10">
+            <div className="relative p-8 rounded-2xl border flex flex-col gap-6 shadow-[0_8px_30px_-8px_rgba(22,163,74,0.25)] border-green-200 bg-green-50">
               <div className="absolute -top-3 -right-3">
                 <span className="relative flex h-6 w-6">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-green-400" />
-                  <span className="relative inline-flex rounded-full h-6 w-6 items-center justify-center bg-green-500">
+                  <span className="relative inline-flex rounded-full h-6 w-6 items-center justify-center bg-green-600">
                     <Check className="w-3.5 h-3.5 text-white" />
                   </span>
                 </span>
               </div>
-              <h3 className="text-xl font-medium text-white font-geist">Wallet Mail</h3>
+              <h3 className="text-xl font-medium text-neutral-900 font-geist">Wallet Mail</h3>
               <ul className="space-y-4">
                 {US_POINTS.map((point) => (
-                  <li key={point} className="flex items-center gap-3 text-white">
-                    <div className="p-1 rounded-full bg-green-500/20">
-                      <Check className="w-4 h-4 text-green-400" />
+                  <li key={point} className="flex items-center gap-3 text-neutral-800">
+                    <div className="p-1 rounded-full bg-green-600/15">
+                      <Check className="w-4 h-4 text-green-700" />
                     </div>
                     <span className="font-geist font-medium">{point}</span>
                   </li>
@@ -242,13 +246,13 @@ export default function Home() {
       >
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <p className="text-sm font-medium text-white/50 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
+            <p className="text-sm font-medium text-neutral-400 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
               Core Features
             </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter text-neutral-900 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
               Everything Email Should&apos;ve Been
             </h2>
-            <p className="mt-3 text-base text-white/70 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both]">
+            <p className="mt-3 text-base text-neutral-500 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both]">
               Three pillars: identity, privacy, and payment — all native to your wallet.
             </p>
           </div>
@@ -260,19 +264,19 @@ export default function Home() {
             return (
               <div
                 key={feature.title}
-                className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 animate-on-scroll group hover:bg-white/[0.07] transition-colors md:col-span-1"
+                className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm animate-on-scroll group hover:shadow-md hover:-translate-y-0.5 transition-all md:col-span-1"
                 style={{ animation: `fadeSlideIn 1s ease-out ${0.5 + i * 0.1}s both` }}
               >
                 <div className="sm:p-8 pt-6 pr-6 pb-6 pl-6 h-full flex flex-col">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="p-2 border rounded-lg bg-green-500/10 border-green-500/20">
-                      <Icon className="w-6 h-6 text-green-400" />
+                    <div className="p-2 border rounded-lg bg-green-50 border-green-200">
+                      <Icon className="w-6 h-6 text-green-700" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-medium tracking-tight font-geist text-white">
+                  <h3 className="text-xl font-medium tracking-tight font-geist text-neutral-900">
                     {feature.title}
                   </h3>
-                  <p className="mt-3 text-sm text-white/70 font-geist leading-relaxed">
+                  <p className="mt-3 text-sm text-neutral-500 font-geist leading-relaxed">
                     {feature.body}
                   </p>
                 </div>
@@ -280,21 +284,21 @@ export default function Home() {
             );
           })}
 
-          <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 md:col-span-3 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.4s_both] mt-6">
+          <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-900 md:col-span-3 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.4s_both] mt-6">
             <div
               className="absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(circle at 80% 20%, rgba(16,185,129,0.15), transparent 60%)",
+                  "radial-gradient(circle at 80% 20%, rgba(34,197,94,0.25), transparent 60%)",
               }}
             />
             <div className="p-8 sm:p-12 relative z-20 h-full flex flex-col justify-center max-w-xl">
               <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium font-geist border-green-400/30 bg-green-400/15 text-green-200">
+                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium font-geist border-green-400/30 bg-green-400/15 text-green-300">
                   Naming
                 </span>
               </div>
-              <h3 className="text-3xl sm:text-4xl font-geist tracking-tighter">
+              <h3 className="text-3xl sm:text-4xl font-geist tracking-tighter text-white">
                 Trade <span className="text-green-400">0x71C9...4aB2</span> for{" "}
                 <span className="text-green-400">maya.mail</span>
               </h3>
@@ -306,7 +310,7 @@ export default function Home() {
               <div className="mt-8">
                 <a
                   href="#pricing"
-                  className="inline-flex items-center gap-2 text-sm font-medium text-black bg-white rounded-lg px-4 py-2 hover:bg-neutral-200 transition font-geist"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-neutral-900 bg-white rounded-lg px-4 py-2 hover:bg-neutral-200 transition font-geist"
                 >
                   See Naming Fees
                   <ArrowRight className="h-4 w-4" />
@@ -318,17 +322,17 @@ export default function Home() {
       </section>
 
       {/* 4. PROCESS PATH */}
-      <section className="border-y border-white/5 pt-24 pb-24 relative">
+      <section className="border-y border-neutral-100 bg-neutral-50 pt-24 pb-24 relative">
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-6 pl-6">
           <div className="text-center mb-16 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter text-neutral-900">
               From Wallet to Inbox
             </h2>
-            <p className="mt-4 text-white/60 font-geist">Three steps, no account creation.</p>
+            <p className="mt-4 text-neutral-500 font-geist">Three steps, no account creation.</p>
           </div>
 
           <div className="relative grid md:grid-cols-3 gap-8">
-            <div className="hidden md:block absolute top-8 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <div className="hidden md:block absolute top-8 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent" />
 
             {PROTOCOL_STEPS.map((step, i) => (
               <div
@@ -337,22 +341,20 @@ export default function Home() {
                 style={{ animation: `fadeSlideIn 1s ease-out ${0.2 + i * 0.1}s both` }}
               >
                 <div
-                  className={`w-16 h-16 rounded-full bg-black border flex items-center justify-center relative z-10 mb-6 ${
-                    step.active
-                      ? "border-green-500/50 shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                      : "border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                  className={`w-16 h-16 rounded-full bg-white border flex items-center justify-center relative z-10 mb-6 shadow-sm ${
+                    step.active ? "border-green-500" : "border-neutral-200"
                   }`}
                 >
                   <span
                     className={`text-xl font-bold font-geist ${
-                      step.active ? "text-green-400" : "text-white"
+                      step.active ? "text-green-600" : "text-neutral-900"
                     }`}
                   >
                     {step.n}
                   </span>
                 </div>
-                <h3 className="text-xl font-medium text-white font-geist mb-2">{step.title}</h3>
-                <p className="text-sm text-white/60 font-geist leading-relaxed max-w-xs">
+                <h3 className="text-xl font-medium text-neutral-900 font-geist mb-2">{step.title}</h3>
+                <p className="text-sm text-neutral-500 font-geist leading-relaxed max-w-xs">
                   {step.body}
                 </p>
               </div>
@@ -368,20 +370,20 @@ export default function Home() {
       >
         <div className="relative">
           <div className="relative max-w-5xl mx-auto text-center animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
-              <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 shadow-sm text-neutral-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
               <span className="text-xs font-normal font-geist">Day 3 · Real Numbers</span>
             </div>
-            <h2 className="text-[40px] sm:text-6xl leading-[0.95] text-white mt-4 font-geist tracking-tighter">
+            <h2 className="text-[40px] sm:text-6xl leading-[0.95] text-neutral-900 mt-4 font-geist tracking-tighter">
               Small. Real.{" "}
               <span
                 className="italic"
-                style={{ fontFamily: "'Instrument Serif', serif", color: "#4ade80" }}
+                style={{ fontFamily: "'Instrument Serif', serif", color: "#16a34a" }}
               >
                 Wallet&#8209;signed.
               </span>
             </h2>
-            <p className="mt-3 text-sm sm:text-base text-white/70 max-w-2xl mx-auto font-geist">
+            <p className="mt-3 text-sm sm:text-base text-neutral-500 max-w-2xl mx-auto font-geist">
               Every number below is a wallet signature, not a signup form. Counted straight
               from the database.
             </p>
@@ -391,35 +393,26 @@ export default function Home() {
             {STATS.map((stat, i) => (
               <article
                 key={stat.label}
-                className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl p-6 animate-on-scroll flex flex-col h-full transition-colors duration-300 ${
+                className={`relative overflow-hidden rounded-2xl border p-6 animate-on-scroll flex flex-col h-full transition-all duration-300 ${
                   stat.featured
-                    ? "shadow-[0_0_30px_-5px_rgba(99,102,241,0.15)] ring-1 border-green-500/30 bg-green-900/10 ring-green-500/20"
-                    : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
+                    ? "shadow-[0_8px_30px_-8px_rgba(22,163,74,0.25)] border-green-200 bg-green-50"
+                    : "border-neutral-200 bg-white shadow-sm hover:shadow-md"
                 }`}
                 style={{ animation: `fadeSlideIn 1s ease-out ${0.2 + i * 0.1}s both` }}
               >
-                {stat.featured && (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      background:
-                        "radial-gradient(circle at 50% -20%, rgba(99,102,241,0.15), transparent 70%)",
-                    }}
-                  />
-                )}
                 <p
                   className={`relative text-xs font-geist uppercase tracking-wider mb-6 ${
-                    stat.featured ? "text-green-200/70" : "text-white/50"
+                    stat.featured ? "text-green-700" : "text-neutral-400"
                   }`}
                 >
                   {stat.label}
                 </p>
-                <p className="relative text-4xl lg:text-5xl text-white font-geist tracking-tighter mb-4">
+                <p className="relative text-4xl lg:text-5xl text-neutral-900 font-geist tracking-tighter mb-4">
                   {stat.value}
                 </p>
                 <p
                   className={`relative text-sm font-geist leading-relaxed mt-auto ${
-                    stat.featured ? "text-white/70" : "text-white/60"
+                    stat.featured ? "text-neutral-700" : "text-neutral-500"
                   }`}
                 >
                   {stat.body}
@@ -429,11 +422,11 @@ export default function Home() {
           </div>
 
           <div className="relative max-w-[1400px] mx-auto mt-6 grid md:grid-cols-2 gap-6">
-            <article className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 sm:p-8 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both] hover:bg-white/[0.07] transition-colors duration-300">
-              <h3 className="text-lg text-white font-medium tracking-tight font-geist mb-2">
+            <article className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm p-6 sm:p-8 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both] hover:shadow-md transition-all duration-300">
+              <h3 className="text-lg text-neutral-900 font-medium tracking-tight font-geist mb-2">
                 Every number here is a wallet signature, not a signup form.
               </h3>
-              <p className="text-sm text-white/60 font-geist leading-relaxed mb-6">
+              <p className="text-sm text-neutral-500 font-geist leading-relaxed mb-6">
                 No email lists, no fake accounts, no bought users. 25 wallets signed a
                 sentence with their private key. That&apos;s the only way in.
               </p>
@@ -441,60 +434,54 @@ export default function Home() {
                 {CLAIMED_NAMES.map((name) => (
                   <span
                     key={name}
-                    className="text-[11px] font-geist bg-white/5 border border-white/10 text-white/60 rounded-full px-3 py-1"
+                    className="text-[11px] font-geist bg-neutral-50 border border-neutral-200 text-neutral-600 rounded-full px-3 py-1"
                   >
                     {name}
                   </span>
                 ))}
-                <span className="text-[11px] font-geist text-white/40 rounded-full px-3 py-1">
+                <span className="text-[11px] font-geist text-neutral-400 rounded-full px-3 py-1">
                   +4 more
                 </span>
               </div>
             </article>
 
-            <article className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 sm:p-8 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] hover:bg-white/[0.07] transition-colors duration-300">
-              <h3 className="text-lg text-white font-medium tracking-tight font-geist mb-4">
+            <article className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm p-6 sm:p-8 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] hover:shadow-md transition-all duration-300">
+              <h3 className="text-lg text-neutral-900 font-medium tracking-tight font-geist mb-4">
                 Shipped in the same 3 days
               </h3>
               <ul className="space-y-3.5">
                 {SHIP_LOG.map((entry) => (
                   <li key={entry.day} className="flex items-start gap-3">
-                    <span className="text-[11px] font-geist text-green-400 mt-0.5 shrink-0">
+                    <span className="text-[11px] font-geist text-green-700 mt-0.5 shrink-0 font-semibold">
                       {entry.day}
                     </span>
-                    <span className="text-sm text-white/70 font-geist">{entry.body}</span>
+                    <span className="text-sm text-neutral-600 font-geist">{entry.body}</span>
                   </li>
                 ))}
               </ul>
             </article>
           </div>
 
-          <p className="max-w-[1400px] mx-auto mt-6 text-center text-[11px] text-white/30 font-geist tracking-wide">
-            Counted from the database, 2026-09-18 · Test wallets excluded · Robinhood Chain
+          <p className="max-w-[1400px] mx-auto mt-6 text-center text-[11px] text-neutral-400 font-geist tracking-wide">
+            Counted from the database, 2026-09-19 · Test wallets excluded · Robinhood Chain
           </p>
         </div>
       </section>
 
       {/* 5. APPLICATION FORM */}
       <section
-        className="overflow-hidden bg-cover relative py-24 bg-center"
-        style={{
-          backgroundImage:
-            "url(https://images.unsplash.com/photo-1738174722327-fe8789165fbf?w=2560&q=80)",
-        }}
+        className="overflow-hidden relative py-24 bg-neutral-50 border-t border-neutral-100"
         id="application"
       >
-        <div className="bg-black/80 backdrop-blur-sm absolute inset-0" />
-
         <div className="relative max-w-2xl mx-auto text-center px-6 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
-            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 shadow-sm text-neutral-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
             <span className="text-xs font-normal font-geist">Early Access</span>
           </div>
-          <h2 className="mt-4 text-3xl sm:text-5xl font-geist tracking-tighter">
+          <h2 className="mt-4 text-3xl sm:text-5xl font-geist tracking-tighter text-neutral-900">
             Get Early Access
           </h2>
-          <p className="mt-3 text-white/60 font-geist text-sm sm:text-base">
+          <p className="mt-3 text-neutral-500 font-geist text-sm sm:text-base">
             Robinhood Chain wallets get priority access to name minting.
           </p>
 
@@ -503,55 +490,55 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-white/5 px-6 py-14 relative">
+      <footer className="border-t border-neutral-100 bg-white px-6 py-14 relative">
         <div className="max-w-6xl mx-auto grid sm:grid-cols-3 gap-10 text-sm">
           <div>
-            <h4 className="font-geist font-medium mb-2 text-white">Wallet Mail</h4>
-            <p className="text-white/40 font-geist max-w-xs">
+            <h4 className="font-geist font-medium mb-2 text-neutral-900">Wallet Mail</h4>
+            <p className="text-neutral-500 font-geist max-w-xs">
               Email for wallets. Sign in with your key, message any address, every word
               encrypted and signed. Built on Robinhood Chain.
             </p>
           </div>
           <div>
-            <h4 className="font-geist font-medium mb-3 text-white/60">Product</h4>
-            <ul className="space-y-2 text-white/40 font-geist">
+            <h4 className="font-geist font-medium mb-3 text-neutral-900">Product</h4>
+            <ul className="space-y-2 text-neutral-500 font-geist">
               <li>
-                <a href="#intelligence" className="hover:text-white transition-colors">
+                <a href="#intelligence" className="hover:text-neutral-900 transition-colors">
                   Protocol
                 </a>
               </li>
               <li>
-                <a href="#services" className="hover:text-white transition-colors">
+                <a href="#services" className="hover:text-neutral-900 transition-colors">
                   Features
                 </a>
               </li>
               <li>
-                <a href="#pricing" className="hover:text-white transition-colors">
+                <a href="#pricing" className="hover:text-neutral-900 transition-colors">
                   Naming
                 </a>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-geist font-medium mb-3 text-white/60">Legal</h4>
-            <ul className="space-y-2 text-white/40 font-geist">
+            <h4 className="font-geist font-medium mb-3 text-neutral-900">Legal</h4>
+            <ul className="space-y-2 text-neutral-500 font-geist">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-neutral-900 transition-colors">
                   Terms of Service
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <a href="#" className="hover:text-neutral-900 transition-colors">
                   Privacy Policy
                 </a>
               </li>
             </ul>
           </div>
         </div>
-        <p className="max-w-6xl mx-auto mt-10 pt-6 border-t border-white/5 text-xs text-white/30 font-geist">
+        <p className="max-w-6xl mx-auto mt-10 pt-6 border-t border-neutral-100 text-xs text-neutral-400 font-geist">
           © 2026 Wallet Mail. Not affiliated with Robinhood Markets, Inc.
         </p>
       </footer>
-    </>
+    </div>
   );
 }

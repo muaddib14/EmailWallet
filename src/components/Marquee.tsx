@@ -26,7 +26,7 @@ export default function Marquee({ items, speedSeconds = 25 }: MarqueeProps) {
         {track.map((wallet, i) => (
           <span
             key={`${wallet.name}-${i}`}
-            className="flex items-center gap-2.5 font-geist text-white/60 hover:text-white transition-colors text-base font-medium whitespace-nowrap"
+            className="flex items-center gap-2.5 font-geist text-neutral-500 hover:text-neutral-900 transition-colors text-base font-medium whitespace-nowrap"
           >
             <WalletMark wallet={wallet} />
             {wallet.name}

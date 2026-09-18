@@ -10,34 +10,34 @@ export default function EarlyAccessForm() {
       }}
     >
       <div>
-        <label htmlFor="waName" className="text-xs text-white/40 font-geist mb-1.5 block">
+        <label htmlFor="waName" className="text-xs text-neutral-500 font-geist mb-1.5 block">
           Name
         </label>
         <input
           id="waName"
           type="text"
           placeholder="Your Name"
-          className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30"
+          className="w-full bg-white border border-neutral-200 focus:border-green-600 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900"
         />
       </div>
       <div>
-        <label htmlFor="waWallet" className="text-xs text-white/40 font-geist mb-1.5 block">
+        <label htmlFor="waWallet" className="text-xs text-neutral-500 font-geist mb-1.5 block">
           Wallet Address
         </label>
         <input
           id="waWallet"
           type="text"
           placeholder="0x... or ENS"
-          className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30"
+          className="w-full bg-white border border-neutral-200 focus:border-green-600 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900"
         />
       </div>
       <div>
-        <label htmlFor="waProvider" className="text-xs text-white/40 font-geist mb-1.5 block">
+        <label htmlFor="waProvider" className="text-xs text-neutral-500 font-geist mb-1.5 block">
           Primary Wallet
         </label>
         <select
           id="waProvider"
-          className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist text-white/70"
+          className="w-full bg-white border border-neutral-200 focus:border-green-600 rounded-lg px-4 py-2.5 text-sm font-geist text-neutral-700"
         >
           <option>Select Wallet</option>
           <option>MetaMask</option>
@@ -47,31 +47,31 @@ export default function EarlyAccessForm() {
         </select>
       </div>
       <div>
-        <label htmlFor="waDesiredName" className="text-xs text-white/40 font-geist mb-1.5 block">
+        <label htmlFor="waDesiredName" className="text-xs text-neutral-500 font-geist mb-1.5 block">
           Desired Name
         </label>
         <input
           id="waDesiredName"
           type="text"
           placeholder="e.g. maya.mail"
-          className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30"
+          className="w-full bg-white border border-neutral-200 focus:border-green-600 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900"
         />
       </div>
       <div className="sm:col-span-2">
-        <label htmlFor="waDetails" className="text-xs text-white/40 font-geist mb-1.5 block">
+        <label htmlFor="waDetails" className="text-xs text-neutral-500 font-geist mb-1.5 block">
           What will you use it for?
         </label>
         <textarea
           id="waDetails"
           rows={4}
           placeholder="DAO coordination, trading group, project updates..."
-          className="w-full bg-white/5 border border-white/10 focus:border-green-500 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-white/30 resize-none"
+          className="w-full bg-white border border-neutral-200 focus:border-green-600 rounded-lg px-4 py-2.5 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 resize-none"
         />
       </div>
       <div className="sm:col-span-2">
         <button
           type="submit"
-          className="w-full sm:w-auto inline-flex items-center gap-2 justify-center bg-white text-black font-medium text-sm font-geist px-6 py-3 rounded-full hover:bg-neutral-200 transition"
+          className="w-full sm:w-auto inline-flex items-center gap-2 justify-center bg-green-600 text-white font-medium text-sm font-geist px-6 py-3 rounded-full hover:bg-green-700 transition"
         >
           Request Access
           <ArrowRightIcon />
