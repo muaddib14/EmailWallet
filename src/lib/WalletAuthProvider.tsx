@@ -3,13 +3,16 @@
 import {
   createContext,
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useAccount, useConnect, useDisconnect, useSignMessage } from "wagmi";
 import { SESSION_MESSAGE, ENCRYPTION_MESSAGE } from "@/lib/authMessages";
 import { deriveKeyPair, publicKeyToBase64, type BoxKeyPair } from "@/lib/crypto";
+import { saveAuthCache, loadAuthCache, clearAuthCache } from "@/lib/authSessionCache";
 
 export type AuthStep = "disconnected" | "connecting" | "signing" | "ready";
 
@@ -51,6 +54,33 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   const [keyPair, setKeyPair] = useState<BoxKeyPair | null>(null);
   const [isSigning, setIsSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const restoreAttempted = useRef(false);
+
+  // Restore a cached sign-in once wagmi reports the wallet reconnected after
+  // a refresh. Runs once per address change (guards on restoreAttempted so
+  // it doesn't fight with a fresh connectAndSign() call in the same tab).
+  useEffect(() => {
+    if (!isConnected || !address || restoreAttempted.current) return;
+    restoreAttempted.current = true;
+
+    const cached = loadAuthCache();
+    if (!cached || cached.address.toLowerCase() !== address.toLowerCase()) {
+      if (cached) clearAuthCache();
+      return;
+    }
+
+    // Restoring from sessionStorage (an external system) once the wallet
+    // reconnects is exactly the "subscribe to an external system" case the
+    // lint rule carves out — not the accidental-sync-setState case it guards
+    // against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSessionSignature(cached.sessionSignature);
+    setKeyPair(deriveKeyPair(cached.encryptionSignature));
+    setEncryptionSignature(cached.encryptionSignature);
+    // The httpOnly session cookie is still attached to every request by the
+    // browser regardless of this reload, so there's no need to re-hit
+    // /api/session here — only the client-side signatures needed restoring.
+  }, [isConnected, address]);
 
   const step: AuthStep = useMemo(() => {
     if (!isConnected) return isConnecting ? "connecting" : "disconnected";
@@ -100,6 +130,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
       const pair = deriveKeyPair(encryptionKey);
       setKeyPair(pair);
       setEncryptionSignature(encryptionKey);
+      saveAuthCache({ address: currentAddress, sessionSignature: session, encryptionSignature: encryptionKey });
 
       // Publish only the public half so others can encrypt to this wallet.
       // Failure here shouldn't block sign-in — it just means composing to
@@ -125,6 +156,8 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     setEncryptionSignature(null);
     setKeyPair(null);
     setError(null);
+    clearAuthCache();
+    restoreAttempted.current = false;
     disconnect();
     void fetch("/api/session", { method: "DELETE" });
   }, [disconnect]);
