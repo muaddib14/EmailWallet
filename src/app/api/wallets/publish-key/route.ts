@@ -4,6 +4,7 @@ import { db } from "@/lib/db/client";
 import { wallets } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { sendWelcomeMessages } from "@/lib/systemWallet";
 
 // A NaCl box public key is 32 bytes, 44 base64 characters. Generous upper
 // bound catches garbage without hardcoding an exact length.
@@ -29,12 +30,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "encryptionPublicKey is required and must be a valid key." }, { status: 400 });
   }
 
+  const [existing] = await db
+    .select({ encryptionPublicKey: wallets.encryptionPublicKey })
+    .from(wallets)
+    .where(eq(wallets.address, address))
+    .limit(1);
+  const isFirstPublish = !existing?.encryptionPublicKey;
+
   // Scoped to the signed-in session's own address — a wallet can only ever
   // publish its own public key, never overwrite someone else's.
   await db
     .update(wallets)
     .set({ encryptionPublicKey })
     .where(eq(wallets.address, address));
+
+  if (isFirstPublish) {
+    // Fire-and-forget: welcome mail is a nice-to-have, never worth failing
+    // or slowing down sign-in over.
+    void sendWelcomeMessages(address, encryptionPublicKey);
+  }
 
   return NextResponse.json({ ok: true });
 }
