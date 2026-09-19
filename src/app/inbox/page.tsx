@@ -11,7 +11,6 @@ import MessageListPanel from "@/components/inbox/MessageListPanel";
 import MessageDetailPanel from "@/components/inbox/MessageDetailPanel";
 import DraftsListPanel from "@/components/inbox/DraftsListPanel";
 import ComposeModal from "@/components/inbox/ComposeModal";
-import { Mail } from "lucide-react";
 import type { Folder } from "@/components/inbox/types";
 
 export default function InboxPage() {
@@ -141,54 +140,42 @@ function InboxApp({ myAddress }: { myAddress: string }) {
 
         <div className="flex-1 flex min-h-0">
           {folder === "drafts" ? (
-            <>
-              <DraftsListPanel
-                drafts={filteredDrafts}
-                onOpenDraft={openDraft}
-                onDeleteDraft={(id) => void deleteDraft(id)}
-              />
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-3 bg-white">
-                <div className="h-16 w-16 rounded-2xl bg-green-50 border border-green-200 flex items-center justify-center">
-                  <Mail className="w-7 h-7 text-green-600" />
-                </div>
-                <p className="text-base font-medium text-neutral-900 font-geist">
-                  Select a draft to keep writing
-                </p>
-              </div>
-            </>
+            <DraftsListPanel
+              drafts={filteredDrafts}
+              onOpenDraft={openDraft}
+              onDeleteDraft={(id) => void deleteDraft(id)}
+            />
+          ) : selected ? (
+            <MessageDetailPanel
+              message={selected}
+              onBack={() => setSelectedId(null)}
+              onToggleStar={(id, next) => void setMessageFlags(id, { isStarred: next })}
+              onArchive={(id, next) => {
+                void setMessageFlags(id, { isArchived: next });
+                setSelectedId(null);
+              }}
+              onTrash={(id) => {
+                void setMessageFlags(id, { isDeleted: true });
+                setSelectedId(null);
+              }}
+              onRestore={(id) => {
+                void setMessageFlags(id, { isDeleted: false });
+                setSelectedId(null);
+              }}
+              onPurge={(id) => {
+                void purgeMessage(id);
+                setSelectedId(null);
+              }}
+              onReply={(msg) => setCompose({ to: msg.counterparty, subject: `Re: ${msg.subject}` })}
+            />
           ) : (
-            <>
-              <MessageListPanel
-                folder={folder}
-                messages={filtered}
-                selectedId={selectedId}
-                onSelect={handleSelect}
-                onToggleStar={(id, next) => void setMessageFlags(id, { isStarred: next })}
-              />
-              <MessageDetailPanel
-                message={selected}
-                onToggleStar={(id, next) => void setMessageFlags(id, { isStarred: next })}
-                onArchive={(id, next) => {
-                  void setMessageFlags(id, { isArchived: next });
-                  setSelectedId(null);
-                }}
-                onTrash={(id) => {
-                  void setMessageFlags(id, { isDeleted: true });
-                  setSelectedId(null);
-                }}
-                onRestore={(id) => {
-                  void setMessageFlags(id, { isDeleted: false });
-                  setSelectedId(null);
-                }}
-                onPurge={(id) => {
-                  void purgeMessage(id);
-                  setSelectedId(null);
-                }}
-                onReply={(msg) =>
-                  setCompose({ to: msg.counterparty, subject: `Re: ${msg.subject}` })
-                }
-              />
-            </>
+            <MessageListPanel
+              folder={folder}
+              messages={filtered}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              onToggleStar={(id, next) => void setMessageFlags(id, { isStarred: next })}
+            />
           )}
         </div>
 

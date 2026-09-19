@@ -23,8 +23,8 @@ export default function DraftsListPanel({
   onDeleteDraft: (id: string) => void;
 }) {
   return (
-    <div className="w-[380px] shrink-0 border-r border-neutral-200 bg-white flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-neutral-200 flex items-center gap-2">
+    <div className="w-full h-full bg-white flex flex-col">
+      <div className="px-8 py-4 border-b border-neutral-200 flex items-center gap-2 shrink-0">
         <h1 className="text-lg font-semibold text-neutral-900 font-geist">Drafts</h1>
         <span className="text-xs text-neutral-400 font-geist">{drafts.length} messages</span>
       </div>
@@ -42,7 +42,7 @@ export default function DraftsListPanel({
             <li key={draft.id} className="group relative">
               <button
                 onClick={() => onOpenDraft(draft)}
-                className="w-full text-left px-6 py-3.5 hover:bg-neutral-50 transition-colors"
+                className="w-full text-left px-8 py-3.5 hover:bg-neutral-50 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2 mb-1 pr-6">
                   <span className="text-xs font-geist text-neutral-500 truncate">
@@ -63,7 +63,7 @@ export default function DraftsListPanel({
                   onDeleteDraft(draft.id);
                 }}
                 title="Delete draft"
-                className="absolute top-3.5 right-4 p-1 rounded text-neutral-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-3.5 right-6 p-1 rounded text-neutral-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

@@ -1,10 +1,11 @@
 "use client";
 
-import { Mail, Star, Archive, Reply, Trash2, RotateCcw } from "lucide-react";
+import { ArrowLeft, Star, Archive, Reply, Trash2, RotateCcw } from "lucide-react";
 import type { DecryptedMessage } from "@/lib/useInboxMessages";
 
 export default function MessageDetailPanel({
   message,
+  onBack,
   onToggleStar,
   onArchive,
   onTrash,
@@ -12,7 +13,8 @@ export default function MessageDetailPanel({
   onPurge,
   onReply,
 }: {
-  message: DecryptedMessage | null;
+  message: DecryptedMessage;
+  onBack: () => void;
   onToggleStar: (id: string, next: boolean) => void;
   onArchive: (id: string, next: boolean) => void;
   onTrash: (id: string) => void;
@@ -20,32 +22,28 @@ export default function MessageDetailPanel({
   onPurge: (id: string) => void;
   onReply: (message: DecryptedMessage) => void;
 }) {
-  if (!message) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8 gap-3 bg-white">
-        <div className="h-16 w-16 rounded-2xl bg-green-50 border border-green-200 flex items-center justify-center">
-          <Mail className="w-7 h-7 text-green-600" />
-        </div>
-        <p className="text-base font-medium text-neutral-900 font-geist">Select a message to read it</p>
-        <p className="text-sm text-neutral-400 font-geist max-w-sm">
-          Every message is signed by the sender&apos;s wallet and stored encrypted for your
-          wallet only.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
-      <div className="px-8 py-5 border-b border-neutral-200 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-medium text-neutral-900 font-geist mb-1.5">{message.subject}</h2>
-          <p className="text-xs text-neutral-400 font-geist">
-            {message.direction === "out" ? "To " : "From "}
-            <span className="text-neutral-600">{message.counterparty}</span>
-            {" · "}
-            {new Date(message.createdAt).toLocaleString()}
-          </p>
+      <div className="px-4 sm:px-8 py-5 border-b border-neutral-200 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <button
+            onClick={onBack}
+            className="p-2 -ml-2 mt-0.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors shrink-0"
+            title="Back to list"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <h2 className="text-xl font-medium text-neutral-900 font-geist mb-1.5 truncate">
+              {message.subject}
+            </h2>
+            <p className="text-xs text-neutral-400 font-geist">
+              {message.direction === "out" ? "To " : "From "}
+              <span className="text-neutral-600">{message.counterparty}</span>
+              {" · "}
+              {new Date(message.createdAt).toLocaleString()}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {message.isDeleted ? (

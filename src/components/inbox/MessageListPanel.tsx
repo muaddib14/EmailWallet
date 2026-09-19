@@ -38,8 +38,8 @@ export default function MessageListPanel({
   };
 
   return (
-    <div className="w-[380px] shrink-0 border-r border-neutral-200 bg-white flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-neutral-200 flex items-center gap-2">
+    <div className="w-full h-full bg-white flex flex-col">
+      <div className="px-8 py-4 border-b border-neutral-200 flex items-center gap-2 shrink-0">
         <h1 className="text-lg font-semibold text-neutral-900 font-geist">{FOLDER_LABELS[folder]}</h1>
         <span className="text-xs text-neutral-400 font-geist">{messages.length} messages</span>
       </div>
@@ -55,48 +55,52 @@ export default function MessageListPanel({
         <ul className="flex-1 overflow-y-auto divide-y divide-neutral-100">
           {messages.map((msg) => (
             <li key={msg.id}>
-              <button
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(msg.id)}
-                className={`w-full text-left px-6 py-3.5 transition-colors ${
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onSelect(msg.id);
+                }}
+                className={`w-full text-left px-8 py-3.5 transition-colors flex items-center gap-4 cursor-pointer ${
                   selectedId === msg.id ? "bg-neutral-50" : "hover:bg-neutral-50"
                 } ${!msg.isRead && msg.direction === "in" ? "border-l-2 border-green-500" : "border-l-2 border-transparent"}`}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span
-                    className={`text-xs font-geist truncate ${
-                      !msg.isRead && msg.direction === "in" ? "text-neutral-900 font-medium" : "text-neutral-500"
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleStar(msg.id, !msg.isStarred);
+                  }}
+                  className="shrink-0"
+                >
+                  <Star
+                    className={`w-4 h-4 ${
+                      msg.isStarred ? "fill-yellow-400 text-yellow-500" : "text-neutral-300"
                     }`}
-                  >
-                    {msg.counterparty.slice(0, 10)}...
-                  </span>
-                  <span className="text-[10px] text-neutral-400 font-geist shrink-0">
-                    {timeAgo(msg.createdAt)}
-                  </span>
-                </div>
-                <p
-                  className={`text-sm truncate font-geist ${
-                    !msg.isRead && msg.direction === "in" ? "text-neutral-900 font-medium" : "text-neutral-700"
+                  />
+                </button>
+
+                <span
+                  className={`text-sm font-geist truncate w-48 shrink-0 ${
+                    !msg.isRead && msg.direction === "in" ? "text-neutral-900 font-medium" : "text-neutral-500"
                   }`}
                 >
-                  {msg.subject}
-                </p>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs text-neutral-400 truncate font-geist pr-2">{msg.body}</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleStar(msg.id, !msg.isStarred);
-                    }}
-                    className="shrink-0"
+                  {msg.counterparty.slice(0, 10)}...
+                </span>
+
+                <span className="flex-1 min-w-0 flex items-baseline gap-2">
+                  <span
+                    className={`text-sm font-geist truncate ${
+                      !msg.isRead && msg.direction === "in" ? "text-neutral-900 font-medium" : "text-neutral-700"
+                    }`}
                   >
-                    <Star
-                      className={`w-3.5 h-3.5 ${
-                        msg.isStarred ? "fill-yellow-400 text-yellow-500" : "text-neutral-300"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </button>
+                    {msg.subject}
+                  </span>
+                  <span className="text-sm text-neutral-400 font-geist truncate">— {msg.body}</span>
+                </span>
+
+                <span className="text-xs text-neutral-400 font-geist shrink-0">{timeAgo(msg.createdAt)}</span>
+              </div>
             </li>
           ))}
         </ul>
