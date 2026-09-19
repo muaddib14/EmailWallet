@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  PenSquare,
   Inbox as InboxIcon,
   Star,
   Send,
@@ -30,19 +31,29 @@ export default function InboxSidebar({
   activeFolder,
   counts,
   onSelectFolder,
+  onCompose,
 }: {
   activeFolder: Folder;
   counts: Partial<Record<Folder, number>>;
   onSelectFolder: (folder: Folder) => void;
+  onCompose: () => void;
 }) {
   return (
     <aside className="w-64 shrink-0 border-r border-neutral-200 bg-neutral-50 flex flex-col h-full">
       <div className="p-4">
-        <Link href="/" className="flex items-center gap-2 px-2">
+        <Link href="/" className="flex items-center gap-2 px-2 mb-4">
           <span className="text-lg font-semibold tracking-tight text-neutral-900 font-geist">
             Wallet Mail
           </span>
         </Link>
+
+        <button
+          onClick={onCompose}
+          className="w-full inline-flex items-center gap-2 justify-center rounded-full bg-green-600 text-white text-sm font-medium font-geist h-10 hover:bg-green-700 transition-colors shadow-sm"
+        >
+          <PenSquare className="w-4 h-4" />
+          New mail
+        </button>
       </div>
 
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">

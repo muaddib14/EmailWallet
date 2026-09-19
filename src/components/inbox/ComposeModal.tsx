@@ -138,7 +138,7 @@ export default function ComposeModal({
         <>
           <div className="px-4 shrink-0">
             <div className="flex items-center border-b border-neutral-200 py-2.5">
-              <label htmlFor="composeTo" className="text-sm text-neutral-400 font-geist w-12 shrink-0">
+              <label htmlFor="composeTo" className="text-sm text-neutral-400 font-geist w-16 shrink-0 whitespace-nowrap">
                 To
               </label>
               <input
@@ -147,11 +147,11 @@ export default function ComposeModal({
                 onChange={(e) => setTo(e.target.value)}
                 placeholder="0x... or maya.mail"
                 required
-                className="flex-1 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
+                className="flex-1 min-w-0 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
               />
             </div>
             <div className="flex items-center border-b border-neutral-200 py-2.5">
-              <label htmlFor="composeSubject" className="text-sm text-neutral-400 font-geist w-12 shrink-0">
+              <label htmlFor="composeSubject" className="text-sm text-neutral-400 font-geist w-16 shrink-0 whitespace-nowrap">
                 Subject
               </label>
               <input
@@ -159,7 +159,7 @@ export default function ComposeModal({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 required
-                className="flex-1 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
+                className="flex-1 min-w-0 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
               />
             </div>
           </div>
