@@ -111,12 +111,18 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const session = await signMessageAsync({ message: SESSION_MESSAGE(currentAddress) });
+      const nonceRes = await fetch("/api/session/nonce");
+      if (!nonceRes.ok) {
+        throw new Error("Could not start sign-in (nonce request failed). Try again.");
+      }
+      const { nonce } = await nonceRes.json();
+
+      const session = await signMessageAsync({ message: SESSION_MESSAGE(currentAddress, nonce) });
 
       const response = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: currentAddress, signature: session }),
+        body: JSON.stringify({ address: currentAddress, signature: session, nonce }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));

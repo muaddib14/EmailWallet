@@ -90,6 +90,17 @@ export const drafts = pgTable("drafts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// One-time login nonces (SIWE-style). SESSION_MESSAGE embeds one of these, so
+// a signature is only ever valid for a single login attempt within a short
+// window — without this, the signed message was a fixed string per address,
+// meaning a leaked signature (e.g. from the sessionStorage cache, or an XSS)
+// could be replayed forever to mint new sessions with no private key needed.
+export const loginNonces = pgTable("login_nonces", {
+  nonce: text("nonce").primaryKey(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 // A session is just a record that a session-signature was issued and hasn't
 // expired — there's no password to check, so this table is the entire auth
 // state. Verify the signature again at read time if you need non-repudiation;

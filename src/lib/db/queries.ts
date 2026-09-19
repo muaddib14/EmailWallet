@@ -1,13 +1,36 @@
-import { randomUUID } from "crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { randomUUID, randomBytes } from "crypto";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { db } from "./client";
-import { drafts, messageFlags, messages, names, sessions, wallets } from "./schema";
+import { drafts, loginNonces, messageFlags, messages, names, sessions, wallets } from "./schema";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const NONCE_TTL_MS = 5 * 60 * 1000; // signing prompt should take seconds, not minutes
 const MAX_CIPHERTEXT_LENGTH = 20_000; // ~20KB per field; plenty for mail, bounds storage abuse
 
 export async function upsertWallet(address: string) {
   await db.insert(wallets).values({ address }).onConflictDoNothing({ target: wallets.address });
+}
+
+/** Issues a one-time nonce for SESSION_MESSAGE. Also sweeps expired nonces so the table doesn't grow forever. */
+export async function createLoginNonce() {
+  await db.delete(loginNonces).where(lt(loginNonces.expiresAt, new Date()));
+
+  const nonce = randomBytes(16).toString("hex");
+  const expiresAt = new Date(Date.now() + NONCE_TTL_MS);
+  await db.insert(loginNonces).values({ nonce, expiresAt });
+  return { nonce, expiresAt };
+}
+
+/** Atomically checks-and-consumes a nonce. Returns false if it never existed, already got used, or expired. */
+export async function consumeLoginNonce(nonce: string): Promise<boolean> {
+  const deleted = await db
+    .delete(loginNonces)
+    .where(eq(loginNonces.nonce, nonce))
+    .returning({ expiresAt: loginNonces.expiresAt });
+
+  const row = deleted[0];
+  if (!row) return false;
+  return row.expiresAt.getTime() >= Date.now();
 }
 
 export async function createSession(address: string, signature: string) {

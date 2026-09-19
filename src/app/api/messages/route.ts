@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAddress, recoverMessageAddress } from "viem";
 import { currentAddress } from "@/lib/session";
 import { insertMessage, listMessagesForAddress } from "@/lib/db/queries";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET() {
   const address = await currentAddress();
@@ -17,6 +18,10 @@ export async function POST(request: NextRequest) {
   const address = await currentAddress();
   if (!address) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  if (!checkRateLimit(`send:${address}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Sending too fast. Try again shortly." }, { status: 429 });
   }
 
   const body = await request.json().catch(() => null);
