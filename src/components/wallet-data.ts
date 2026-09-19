@@ -1,6 +1,10 @@
 export type WalletMark =
-  | { kind: "svg"; path: string }
-  | { kind: "monogram"; letter: string };
+  | { kind: "svg"; viewBox?: string; path: string }
+  | { kind: "monogram"; letter: string }
+  /** Multi-path/multi-color SVG markup, rendered raw. `{{UID}}` in `markup` gets
+   * replaced with a per-render-unique string so duplicated gradient ids (e.g. when
+   * the same wallet appears twice in a looping marquee) don't collide in the DOM. */
+  | { kind: "rawSvg"; viewBox: string; markup: string };
 
 export type Wallet = {
   name: string;
@@ -8,20 +12,61 @@ export type Wallet = {
   mark: WalletMark;
 };
 
-// Official brand marks sourced from simple-icons (github.com/simple-icons/simple-icons),
-// a maintained registry of verified SVG brand assets. MetaMask and Rabby aren't in that
-// registry, so those two render as a color-accurate monogram instead of a scraped/guessed
-// logo file — swap in their real SVGs under /public/logos if you have licensed assets.
+// Brand marks, each sourced from the vendor's own site/repo (not a third-party
+// icon aggregator) so they're the real current marks, not a guess:
+// - MetaMask: official SVG served from metamask.io/assets (their own CDN)
+// - Rabby: RabbyHub/logo on GitHub, Rabby's own brand-assets repo
+// - Robinhood Wallet, WalletConnect, Coinbase Wallet: simple-icons
+//   (github.com/simple-icons/simple-icons), a maintained verified-brand-SVG registry
 export const WALLETS: Wallet[] = [
   {
     name: "MetaMask",
     hex: "F6851B",
-    mark: { kind: "monogram", letter: "M" },
+    mark: {
+      kind: "rawSvg",
+      viewBox: "0 0 142 136.878",
+      markup: `
+        <path fill="#FF5C16" d="M132.682,132.192l-30.583-9.106l-23.063,13.787l-16.092-0.007l-23.077-13.78l-30.569,9.106L0,100.801l9.299-34.839L0,36.507L9.299,0l47.766,28.538h27.85L132.682,0l9.299,36.507l-9.299,29.455l9.299,34.839L132.682,132.192L132.682,132.192z"/>
+        <path fill="#FF5C16" d="M9.305,0l47.767,28.558l-1.899,19.599L9.305,0z M39.875,100.814l21.017,16.01l-21.017,6.261C39.875,123.085,39.875,100.814,39.875,100.814z M59.212,74.345l-4.039-26.174L29.317,65.97l-0.014-0.007v0.013l0.08,18.321l10.485-9.951L59.212,74.345L59.212,74.345z M132.682,0L84.915,28.558l1.893,19.599L132.682,0z M102.113,100.814l-21.018,16.01l21.018,6.261V100.814z M112.678,65.975h0.007H112.678v-0.013l-0.006,0.007L86.815,48.171l-4.039,26.174h19.336l10.492,9.95C112.604,84.295,112.678,65.975,112.678,65.975z"/>
+        <path fill="#E34807" d="M39.868,123.085l-30.569,9.106L0,100.814h39.868C39.868,100.814,39.868,123.085,39.868,123.085z M59.205,74.338l5.839,37.84l-8.093-21.04L29.37,84.295l10.491-9.956h19.344L59.205,74.338z M102.112,123.085l30.57,9.106l9.299-31.378h-39.869C102.112,100.814,102.112,123.085,102.112,123.085z M82.776,74.338l-5.839,37.84l8.092-21.04l27.583-6.843l-10.498-9.956H82.776V74.338z"/>
+        <path fill="#FF8D5D" d="M0,100.801l9.299-34.839h19.997l0.073,18.327l27.584,6.843l8.092,21.039l-4.16,4.633l-21.017-16.01H0V100.801z M141.981,100.801l-9.299-34.839h-19.998l-0.073,18.327l-27.582,6.843l-8.093,21.039l4.159,4.633l21.018-16.01h39.868V100.801z M84.915,28.538h-27.85l-1.891,19.599l9.872,64.013h11.891l9.878-64.013L84.915,28.538z"/>
+        <path fill="#661800" d="M9.299,0L0,36.507l9.299,29.455h19.997l25.87-17.804L9.299,0z M53.426,81.938h-9.059l-4.932,4.835l17.524,4.344l-3.533-9.186V81.938z M132.682,0l9.299,36.507l-9.299,29.455h-19.998L86.815,48.158L132.682,0z M88.568,81.938h9.072l4.932,4.841l-17.544,4.353l3.54-9.201V81.938z M79.029,124.385l2.067-7.567l-4.16-4.633h-11.9l-4.159,4.633l2.066,7.567"/>
+        <path fill="#C0C4CD" d="M79.029,124.384v12.495H62.945v-12.495L79.029,124.384L79.029,124.384z"/>
+        <path fill="#E7EBF6" d="M39.875,123.072l23.083,13.8v-12.495l-2.067-7.566C60.891,116.811,39.875,123.072,39.875,123.072z M102.113,123.072l-23.084,13.8v-12.495l2.067-7.566C81.096,116.811,102.113,123.072,102.113,123.072z"/>
+      `,
+    },
   },
   {
     name: "Rabby",
     hex: "8697FF",
-    mark: { kind: "monogram", letter: "R" },
+    mark: {
+      kind: "rawSvg",
+      viewBox: "0 0 512 512",
+      markup: `
+        <path d="M438.47 279.097C452.952 246.637 381.359 155.948 312.964 118.165C269.853 88.895 224.93 92.9162 215.832 105.768C195.865 133.972 281.948 157.871 339.518 185.759C327.143 191.152 315.481 200.83 308.623 213.207C287.16 189.697 240.052 169.451 184.777 185.759C147.528 196.749 116.571 222.658 104.606 261.791C101.699 260.495 98.4799 259.774 95.0934 259.774C82.1436 259.774 71.6456 270.308 71.6456 283.301C71.6456 296.295 82.1436 306.828 95.0934 306.828C97.4937 306.828 104.999 305.213 104.999 305.213L224.93 306.085C176.967 382.43 139.063 393.59 139.063 406.817C139.063 420.043 175.331 416.459 188.948 411.529C254.138 387.928 324.155 314.373 336.17 293.199C386.625 299.515 429.028 300.262 438.47 279.097Z" fill="url(#{{UID}}-0)"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M339.513 185.763C339.516 185.764 339.519 185.766 339.522 185.767C342.191 184.712 341.759 180.758 341.026 177.652C339.342 170.515 310.284 141.724 282.997 128.829C245.815 111.257 218.435 112.163 214.39 120.262C221.964 135.837 257.077 150.461 293.748 165.733C309.394 172.249 325.323 178.883 339.519 185.76C339.517 185.761 339.515 185.762 339.513 185.763Z" fill="url(#{{UID}}-1)"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M292.329 342.523C284.809 339.64 276.315 336.994 266.658 334.594C276.955 316.108 279.115 288.74 269.391 271.437C255.743 247.153 238.612 234.228 198.802 234.228C176.907 234.228 117.955 241.628 116.909 291.006C116.799 296.187 116.906 300.935 117.28 305.301L224.93 306.084C210.417 329.185 196.825 346.318 184.926 359.345C199.213 363.019 211.003 366.103 221.828 368.934C232.098 371.62 241.499 374.079 251.339 376.598C266.182 365.748 280.135 353.917 292.329 342.523Z" fill="url(#{{UID}}-2)"/>
+        <path d="M103.169 300.228C107.567 337.737 128.813 352.437 172.227 356.788C215.641 361.138 240.544 358.22 273.698 361.246C301.389 363.774 326.113 377.932 335.285 373.04C343.539 368.636 338.921 352.728 327.876 342.521C313.558 329.291 293.742 320.093 258.875 316.828C265.824 297.739 263.877 270.973 253.085 256.411C237.481 235.355 208.68 225.836 172.227 229.995C134.143 234.34 97.6504 253.153 103.169 300.228Z" fill="url(#{{UID}}-3)"/>
+        <defs>
+        <linearGradient id="{{UID}}-0" x1="180.439" y1="250.352" x2="435.479" y2="322.433" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#8697FF"/>
+        <stop offset="1" stop-color="#ABB7FF"/>
+        </linearGradient>
+        <linearGradient id="{{UID}}-1" x1="392.428" y1="245.489" x2="207.876" y2="61.1077" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#8697FF"/>
+        <stop offset="1" stop-color="#5156D8" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="{{UID}}-2" x1="297.446" y1="348.967" x2="120.465" y2="247.558" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#465EED"/>
+        <stop offset="1" stop-color="#8697FF" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="{{UID}}-3" x1="195.658" y1="248.443" x2="315.581" y2="400.306" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#8898FF"/>
+        <stop offset="0.983895" stop-color="#6277F1"/>
+        </linearGradient>
+        </defs>
+      `,
+    },
   },
   {
     name: "Robinhood Wallet",
