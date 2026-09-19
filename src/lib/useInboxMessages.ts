@@ -60,9 +60,15 @@ export function useInboxMessages(myAddress: string) {
       if (!res.ok) throw new Error("Failed to load messages.");
       const data: { messages: RawMessage[] } = await res.json();
 
+      // Addresses from the DB are always lowercased; myAddress comes from
+      // wagmi and is EIP-55 checksummed (mixed case) — a strict === here
+      // silently makes every message look like "in" from the sender's own
+      // perspective too, since it never matches. Compare case-insensitively.
+      const myAddressLower = myAddress.toLowerCase();
       const decrypted = await Promise.all(
         data.messages.map(async (msg): Promise<DecryptedMessage> => {
-          const direction: "in" | "out" = msg.fromAddress === myAddress ? "out" : "in";
+          const direction: "in" | "out" =
+            msg.fromAddress.toLowerCase() === myAddressLower ? "out" : "in";
           const counterparty = direction === "out" ? msg.toAddress : msg.fromAddress;
           const counterpartyKey = await getPublicKey(counterparty);
 
