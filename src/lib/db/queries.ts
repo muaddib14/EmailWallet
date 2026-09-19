@@ -122,10 +122,18 @@ export async function insertMessage(input: NewMessageInput) {
 
   // Flag rows for both sides, created up front so every later query can rely
   // on an inner join instead of juggling "what if this side has no row yet."
-  await db.insert(messageFlags).values([
-    { messageId: id, address: input.fromAddress, isRead: true }, // you obviously "read" what you just sent
-    { messageId: id, address: input.toAddress, isRead: false },
-  ]);
+  // A message to yourself has fromAddress === toAddress, so that's only ONE
+  // row here — (messageId, address) is a unique key, and inserting it twice
+  // for the same address in the same statement violates that constraint.
+  const isSelfSend = input.fromAddress.toLowerCase() === input.toAddress.toLowerCase();
+  const flagRows = isSelfSend
+    ? [{ messageId: id, address: input.fromAddress, isRead: true }]
+    : [
+        { messageId: id, address: input.fromAddress, isRead: true }, // you obviously "read" what you just sent
+        { messageId: id, address: input.toAddress, isRead: false },
+      ];
+
+  await db.insert(messageFlags).values(flagRows);
 
   return id;
 }
