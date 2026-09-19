@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentAddress } from "@/lib/session";
-import { markMessage } from "@/lib/db/queries";
+import { markMessage, purgeMessageForAddress } from "@/lib/db/queries";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const address = await currentAddress();
@@ -15,14 +15,29 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (typeof body?.isRead === "boolean") patch.isRead = body.isRead;
   if (typeof body?.isStarred === "boolean") patch.isStarred = body.isStarred;
   if (typeof body?.isArchived === "boolean") patch.isArchived = body.isArchived;
+  if (typeof body?.isDeleted === "boolean") patch.isDeleted = body.isDeleted;
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
   }
 
-  // markMessage scopes the update to toAddress = address, so a wallet can
-  // only flag mail addressed to it — not tamper with someone else's message.
+  // markMessage scopes the update to this viewer's own flag row, so a wallet
+  // can only change how a message looks in its own mailbox — never the other
+  // side's copy of the same conversation.
   await markMessage(id, address, patch);
+
+  return NextResponse.json({ ok: true });
+}
+
+/** Permanently deletes a message from this viewer's mailbox — only valid from Trash. */
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const address = await currentAddress();
+  if (!address) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const { id } = await params;
+  await purgeMessageForAddress(id, address);
 
   return NextResponse.json({ ok: true });
 }

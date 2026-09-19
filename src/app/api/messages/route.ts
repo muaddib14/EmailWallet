@@ -55,15 +55,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const id = await insertMessage({
-    fromAddress: address,
-    toAddress: toAddress.toLowerCase(),
-    subjectCiphertext,
-    bodyCiphertext,
-    messageHash,
-    senderSignature,
-    threadId,
-  });
-
-  return NextResponse.json({ id }, { status: 201 });
+  try {
+    const id = await insertMessage({
+      fromAddress: address,
+      toAddress: toAddress.toLowerCase(),
+      subjectCiphertext,
+      bodyCiphertext,
+      messageHash,
+      senderSignature,
+      threadId,
+    });
+    return NextResponse.json({ id }, { status: 201 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to store message.";
+    return NextResponse.json({ error: message }, { status: 413 });
+  }
 }

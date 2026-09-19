@@ -8,6 +8,20 @@
       "when": 1789702052850,
       "tag": "0000_ambitious_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789809573666,
+      "tag": "0001_salty_shinko_yamashiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789809685373,
+      "tag": "0002_parched_madripoor",
+      "breakpoints": true
     }
   ]
 }

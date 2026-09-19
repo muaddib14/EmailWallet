@@ -13,6 +13,7 @@ export type RawMessage = {
   isRead: boolean;
   isStarred: boolean;
   isArchived: boolean;
+  isDeleted: boolean;
   createdAt: string;
 };
 
@@ -95,7 +96,10 @@ export function useInboxMessages(myAddress: string) {
     void refresh();
   }, [refresh]);
 
-  async function setMessageFlags(id: string, patch: Partial<Pick<RawMessage, "isRead" | "isStarred" | "isArchived">>) {
+  async function setMessageFlags(
+    id: string,
+    patch: Partial<Pick<RawMessage, "isRead" | "isStarred" | "isArchived" | "isDeleted">>
+  ) {
     setMessages((prev) => prev?.map((m) => (m.id === id ? { ...m, ...patch } : m)) ?? prev);
     await fetch(`/api/messages/${id}`, {
       method: "PATCH",
@@ -107,5 +111,11 @@ export function useInboxMessages(myAddress: string) {
     });
   }
 
-  return { messages, error, isLoading, lastSyncedAt, refresh, setMessageFlags };
+  /** Delete forever — only meaningful for a message already in Trash. */
+  async function purgeMessage(id: string) {
+    setMessages((prev) => prev?.filter((m) => m.id !== id) ?? prev);
+    await fetch(`/api/messages/${id}`, { method: "DELETE" }).catch(() => {});
+  }
+
+  return { messages, error, isLoading, lastSyncedAt, refresh, setMessageFlags, purgeMessage };
 }

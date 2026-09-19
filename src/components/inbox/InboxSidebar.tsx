@@ -9,8 +9,6 @@ import {
   FileText,
   Archive as ArchiveIcon,
   Trash2,
-  Users,
-  Bell,
   Settings,
 } from "lucide-react";
 import type { Folder } from "./types";
@@ -81,18 +79,6 @@ export default function InboxSidebar({
             </button>
           );
         })}
-
-        <p className="px-3 pt-5 pb-1.5 text-[10px] uppercase tracking-wider text-neutral-400 font-geist">
-          People
-        </p>
-        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-neutral-500 hover:text-neutral-900 hover:bg-white/60 transition-colors">
-          <Users className="w-4 h-4" />
-          Contacts
-        </button>
-        <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-neutral-500 hover:text-neutral-900 hover:bg-white/60 transition-colors">
-          <Bell className="w-4 h-4" />
-          Notifications
-        </button>
       </nav>
 
       <div className="p-2 border-t border-neutral-200">

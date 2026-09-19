@@ -11,27 +11,40 @@ type Status = "idle" | "sending" | "error";
 
 export default function ComposeModal({
   myAddress,
+  draftId,
   initialTo,
   initialSubject,
+  initialBody,
   onClose,
   onSent,
+  onSaveDraft,
+  onDeleteDraft,
 }: {
   myAddress: string;
+  /** Present when this compose window was opened from an existing draft. */
+  draftId?: string;
   initialTo?: string;
   initialSubject?: string;
+  initialBody?: string;
   onClose: () => void;
   onSent: () => void;
+  onSaveDraft: (id: string | undefined, to: string, subject: string, body: string) => Promise<string | undefined>;
+  onDeleteDraft: (id: string) => Promise<void>;
 }) {
   const { keyPair } = useWalletAuth();
   const { signMessageAsync } = useSignMessage();
 
   const [to, setTo] = useState(initialTo ?? "");
   const [subject, setSubject] = useState(initialSubject ?? "");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(initialBody ?? "");
+  const [currentDraftId, setCurrentDraftId] = useState(draftId);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [minimized, setMinimized] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const hasContent = to.trim() || subject.trim() || body.trim();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,12 +80,27 @@ export default function ComposeModal({
         throw new Error(errBody.error ?? "Server rejected the message.");
       }
 
+      if (currentDraftId) await onDeleteDraft(currentDraftId);
+      setSent(true);
       onSent();
       onClose();
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Failed to send.");
     }
+  }
+
+  async function handleClose() {
+    if (!sent && hasContent) {
+      const savedId = await onSaveDraft(currentDraftId, to, subject, body);
+      if (savedId) setCurrentDraftId(savedId);
+    }
+    onClose();
+  }
+
+  async function handleDiscard() {
+    if (currentDraftId) await onDeleteDraft(currentDraftId);
+    onClose();
   }
 
   const panelSize = expanded
@@ -124,10 +152,10 @@ export default function ComposeModal({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onClose();
+              void handleClose();
             }}
             className="p-1.5 rounded text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200 transition-colors"
-            title="Close"
+            title="Save & close"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -184,7 +212,7 @@ export default function ComposeModal({
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => void handleDiscard()}
               title="Discard draft"
               className="p-2 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
             >

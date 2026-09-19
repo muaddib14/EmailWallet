@@ -1,17 +1,23 @@
 "use client";
 
-import { Mail, Star, Archive, Reply } from "lucide-react";
+import { Mail, Star, Archive, Reply, Trash2, RotateCcw } from "lucide-react";
 import type { DecryptedMessage } from "@/lib/useInboxMessages";
 
 export default function MessageDetailPanel({
   message,
   onToggleStar,
   onArchive,
+  onTrash,
+  onRestore,
+  onPurge,
   onReply,
 }: {
   message: DecryptedMessage | null;
   onToggleStar: (id: string, next: boolean) => void;
   onArchive: (id: string, next: boolean) => void;
+  onTrash: (id: string) => void;
+  onRestore: (id: string) => void;
+  onPurge: (id: string) => void;
   onReply: (message: DecryptedMessage) => void;
 }) {
   if (!message) {
@@ -42,20 +48,48 @@ export default function MessageDetailPanel({
           </p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={() => onToggleStar(message.id, !message.isStarred)}
-            className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
-            title="Star"
-          >
-            <Star className={`w-4 h-4 ${message.isStarred ? "fill-yellow-400 text-yellow-500" : ""}`} />
-          </button>
-          <button
-            onClick={() => onArchive(message.id, !message.isArchived)}
-            className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
-            title="Archive"
-          >
-            <Archive className="w-4 h-4" />
-          </button>
+          {message.isDeleted ? (
+            <>
+              <button
+                onClick={() => onRestore(message.id)}
+                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+                title="Restore to inbox"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onPurge(message.id)}
+                className="p-2 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Delete forever"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => onToggleStar(message.id, !message.isStarred)}
+                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+                title="Star"
+              >
+                <Star className={`w-4 h-4 ${message.isStarred ? "fill-yellow-400 text-yellow-500" : ""}`} />
+              </button>
+              <button
+                onClick={() => onArchive(message.id, !message.isArchived)}
+                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+                title="Archive"
+              >
+                <Archive className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onTrash(message.id)}
+                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+                title="Move to trash"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -70,13 +104,15 @@ export default function MessageDetailPanel({
           <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
           Signed &amp; end-to-end encrypted
         </div>
-        <button
-          onClick={() => onReply(message)}
-          className="inline-flex items-center gap-2 text-sm font-medium text-white bg-neutral-900 rounded-lg px-4 py-2 hover:bg-neutral-800 transition font-geist"
-        >
-          <Reply className="w-4 h-4" />
-          Reply
-        </button>
+        {!message.isDeleted && (
+          <button
+            onClick={() => onReply(message)}
+            className="inline-flex items-center gap-2 text-sm font-medium text-white bg-neutral-900 rounded-lg px-4 py-2 hover:bg-neutral-800 transition font-geist"
+          >
+            <Reply className="w-4 h-4" />
+            Reply
+          </button>
+        )}
       </div>
     </div>
   );

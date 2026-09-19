@@ -30,6 +30,11 @@ export const names = pgTable(
 // blobs encrypted client-side with a key derived from the recipient's wallet
 // signature — this server can never read them. senderSignature is what a
 // public verifier checks against messageHash to prove authorship.
+//
+// Deliberately holds NO per-viewer state (read/starred/archived/deleted) —
+// one message row is shared between sender and recipient, so "archived" or
+// "deleted" living here would apply to both sides of a conversation at once.
+// That state lives in messageFlags instead, one row per (message, viewer).
 export const messages = pgTable("messages", {
   id: text("id").primaryKey(), // uuid, generated client- or server-side
   fromAddress: text("from_address")
@@ -43,10 +48,46 @@ export const messages = pgTable("messages", {
   messageHash: text("message_hash").notNull(), // hash of the plaintext, signed by sender
   senderSignature: text("sender_signature").notNull(), // personal_sign over messageHash
   threadId: text("thread_id"), // groups replies; null/self for a new thread
-  isRead: boolean("is_read").default(false).notNull(),
-  isStarred: boolean("is_starred").default(false).notNull(),
-  isArchived: boolean("is_archived").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// One row per (message, viewer) — a message has exactly two of these created
+// at send time (one for the sender, one for the recipient), so each side's
+// read/star/archive/delete state is independent. `listMessagesForAddress`
+// inner-joins on this table, so deleting a viewer's own row here removes the
+// message from their view without touching the other side's copy.
+export const messageFlags = pgTable(
+  "message_flags",
+  {
+    messageId: text("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    address: text("address")
+      .notNull()
+      .references(() => wallets.address),
+    isRead: boolean("is_read").default(false).notNull(),
+    isStarred: boolean("is_starred").default(false).notNull(),
+    isArchived: boolean("is_archived").default(false).notNull(),
+    isDeleted: boolean("is_deleted").default(false).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("message_flags_pk").on(table.messageId, table.address)]
+);
+
+// Drafts are self-encrypted (owner's own public key, not the recipient's —
+// the recipient may not even be resolved yet while still typing) so the
+// server never sees plaintext even for unsent mail. `toRaw` keeps whatever
+// the user typed in "To" verbatim (address or unresolved name) since a
+// draft doesn't require a valid recipient to exist yet.
+export const drafts = pgTable("drafts", {
+  id: text("id").primaryKey(),
+  ownerAddress: text("owner_address")
+    .notNull()
+    .references(() => wallets.address, { onDelete: "cascade" }),
+  toRaw: text("to_raw").default("").notNull(),
+  subjectCiphertext: text("subject_ciphertext").default("").notNull(),
+  bodyCiphertext: text("body_ciphertext").default("").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // A session is just a record that a session-signature was issued and hasn't
