@@ -21,6 +21,7 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 
 ### 2. Autentikasi Wallet (2-signature, sesuai spec awal)
 - Connect wallet apapun (MetaMask, Rabby, dll) via `wagmi` injected connector
+- **Wallet picker modal**: klik Connect → pilih wallet yang terdeteksi via EIP-6963 (nama + icon asli dari wallet-nya), plus link install MetaMask/Rabby kalau belum kedetek. Kalau sudah connected tapi signature belum lengkap, tombol langsung lanjut sign tanpa buka modal lagi
 - **Signature #1 (session)**: pakai nonce sekali-pakai (SIWE-style) — `GET /api/session/nonce` → sign → `POST /api/session` verify + consume nonce atomic → httpOnly cookie 24 jam
 - **Signature #2 (encryption)**: derive NaCl box keypair (curve25519-xsalsa20-poly1305, algoritma sama kayak `eth_getEncryptionPublicKey` MetaMask lama). Secret key **gak pernah** ke server, cuma public key yang di-publish
 - Session + encryption signature di-cache di `sessionStorage` (bukan localStorage) biar refresh gak minta tanda tangan ulang — trade-off keamanan yang udah didiskusikan & disetujui

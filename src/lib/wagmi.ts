@@ -36,7 +36,14 @@ export const robinhoodChainTestnet = defineChain({
 
 export const wagmiConfig = createConfig({
   chains: [robinhoodChain, robinhoodChainTestnet],
-  connectors: [injected()],
+  // Satu `injected()` sudah cukup untuk MetaMask, Rabby, dan wallet EVM
+  // lain yang inject `window.ethereum` — wagmi mendeteksi semuanya lewat
+  // EIP-6963 (`window.evmproviders`) dan mengekspos tiap wallet sebagai
+  // entri terpisah di `useConnect().connectors` (nama + icon + rdns asli
+  // dari wallet-nya). Jangan hardcode `connectors[0]` — biarkan user pilih
+  // lewat WalletPickerModal. Kalau nanti butuh QR/mobile (WalletConnect)
+  // atau Coinbase SDK, tambah connector-nya di array ini.
+  connectors: [injected({ shimDisconnect: true })],
   transports: {
     [robinhoodChain.id]: http(),
     [robinhoodChainTestnet.id]: http(),

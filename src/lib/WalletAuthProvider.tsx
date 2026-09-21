@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAccount, useConnect, useDisconnect, useSignMessage } from "wagmi";
+import type { Connector } from "wagmi";
 import { SESSION_MESSAGE, ENCRYPTION_MESSAGE } from "@/lib/authMessages";
 import { deriveKeyPair, publicKeyToBase64, type BoxKeyPair } from "@/lib/crypto";
 import { saveAuthCache, loadAuthCache, clearAuthCache } from "@/lib/authSessionCache";
@@ -21,14 +22,42 @@ export type WalletAuthValue = {
   step: AuthStep;
   error: string | null;
   isBusy: boolean;
-  connectAndSign: () => Promise<void>;
+  /** Pass an explicit connector from the picker (EIP-6963 entry). Falls back to the first injected connector when omitted. */
+  connectAndSign: (connector?: Connector) => Promise<void>;
   signOut: () => void;
+  /** Dismiss the current auth error (used by the global error toast). */
+  clearError: () => void;
   isAuthenticated: boolean;
   /** NaCl box keypair derived from the encryption signature. Secret key never leaves the browser. */
   keyPair: BoxKeyPair | null;
+  /** All discovered wallet connectors (EIP-6963: MetaMask, Rabby, dll). Rendered by WalletPickerModal. */
+  connectors: readonly Connector[];
 };
 
 export const WalletAuthContext = createContext<WalletAuthValue | null>(null);
+
+/**
+ * wagmi/viem rejection errors are verbose and wallet-jargony
+ * ("User rejected the request. Details: ... Version: viem@2.x.x").
+ * Map the common cases to one-line copy users can act on. Unknown
+ * errors pass through minus the viem version suffix.
+ */
+function friendlyAuthError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : "Connection was rejected.";
+  const lower = raw.toLowerCase();
+  const code = (err as { code?: number })?.code;
+  if (
+    code === 4001 ||
+    lower.includes("user rejected") ||
+    lower.includes("user denied") ||
+    lower.includes("rejected the request") ||
+    lower.includes("action_rejected")
+  ) {
+    return "Signature was rejected in your wallet. Click to try again — you'll get two prompts (session + encryption key).";
+  }
+  const cleaned = raw.replace(/\s*version:\s*viem@\S+/gi, "").replace(/\s*details:\s*/gi, " ").trim();
+  return cleaned || "Connection was rejected.";
+}
 
 /**
  * Two-signature wallet auth, matching the flow described in the product spec:
@@ -90,19 +119,22 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
 
   const isBusy = isConnecting || isSigning;
 
-  const connectAndSign = useCallback(async () => {
+  const connectAndSign = useCallback(async (picked?: Connector) => {
     setError(null);
     setIsSigning(true);
     try {
       let currentAddress = address;
 
       if (!isConnected) {
-        const injectedConnector = connectors.find((c) => c.type === "injected") ?? connectors[0];
-        if (!injectedConnector) {
+        const target =
+          picked ??
+          connectors.find((c) => c.type === "injected") ??
+          connectors[0];
+        if (!target) {
           setError("No wallet found. Install MetaMask, Rabby, or another EVM wallet.");
           return;
         }
-        const result = await connectAsync({ connector: injectedConnector });
+        const result = await connectAsync({ connector: target });
         currentAddress = result.accounts[0];
       }
 
@@ -150,8 +182,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (err) {
       console.error("[WalletAuthProvider] connectAndSign failed:", err);
-      const message = err instanceof Error ? err.message : "Connection was rejected.";
-      setError(message);
+      setError(friendlyAuthError(err));
     } finally {
       setIsSigning(false);
     }
@@ -168,6 +199,8 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     void fetch("/api/session", { method: "DELETE" });
   }, [disconnect]);
 
+  const clearError = useCallback(() => setError(null), []);
+
   const value: WalletAuthValue = {
     address,
     step,
@@ -175,8 +208,10 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     isBusy,
     connectAndSign,
     signOut,
+    clearError,
     isAuthenticated: step === "ready",
     keyPair,
+    connectors,
   };
 
   return <WalletAuthContext.Provider value={value}>{children}</WalletAuthContext.Provider>;

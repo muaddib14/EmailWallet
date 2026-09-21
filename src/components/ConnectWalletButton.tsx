@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
+import WalletPickerModal from "@/components/WalletPickerModal";
 
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -15,7 +17,8 @@ const LABELS: Record<string, string> = {
 };
 
 export function NavConnectButton() {
-  const { address, step, error, isBusy, connectAndSign, signOut } = useWalletAuth();
+  const { address, step, isBusy, connectAndSign, signOut } = useWalletAuth();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   if (step === "ready" && address) {
     return (
@@ -41,7 +44,12 @@ export function NavConnectButton() {
   return (
     <div className="relative">
       <button
-        onClick={connectAndSign}
+        onClick={() => {
+          // Already connected, signatures just missing/expired -> resume signing directly.
+          // Not connected yet -> open the MetaMask / Rabby picker.
+          if (step === "signing") void connectAndSign();
+          else setPickerOpen(true);
+        }}
         disabled={isBusy}
         className="relative z-10 overflow-hidden transition-[transform] duration-150 ease-out active:scale-[0.98] text-white bg-neutral-900/60 border-white/20 border pt-3 pr-6 pb-3 pl-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] text-xs rounded-full cursor-pointer inline-flex disabled:opacity-60 disabled:cursor-wait"
       >
@@ -50,17 +58,27 @@ export function NavConnectButton() {
         </span>
         <span className="pointer-events-none absolute bottom-0 left-1/2 right-1/2 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-80 transition-[left,right] duration-500 ease-out group-hover:left-0 group-hover:right-0 text-xs rounded-full" />
       </button>
-      {error && (
-        <p className="absolute top-full right-0 mt-2 w-64 text-[11px] text-red-400 font-geist text-right z-20">
-          {error} Click to try again.
-        </p>
+      {step === "signing" && !isBusy && (
+        <button
+          onClick={() => {
+            // Bail out of the half-signed state (e.g. rejected a prompt, wrong
+            // account in Phantom) so the user can pick a different wallet.
+            signOut();
+            setPickerOpen(true);
+          }}
+          className="absolute top-full right-0 mt-2 text-[11px] font-geist text-neutral-500 hover:text-neutral-900 underline underline-offset-2 z-20 whitespace-nowrap"
+        >
+          Use a different wallet
+        </button>
       )}
+      <WalletPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </div>
   );
 }
 
 export function HeroConnectButton() {
-  const { step, error, isBusy, connectAndSign } = useWalletAuth();
+  const { step, isBusy, connectAndSign, signOut } = useWalletAuth();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   if (step === "ready") {
     return (
@@ -76,7 +94,10 @@ export function HeroConnectButton() {
   return (
     <div className="flex flex-col items-center gap-3">
       <button
-        onClick={connectAndSign}
+        onClick={() => {
+          if (step === "signing") void connectAndSign();
+          else setPickerOpen(true);
+        }}
         disabled={isBusy}
         className="group relative inline-flex min-w-[140px] cursor-pointer transition-all duration-[1000ms] ease-[cubic-bezier(0.15,0.83,0.66,1)] hover:-translate-y-[3px] hover:text-white shadow-[0_2.8px_2.2px_rgba(0,0,0,0.3),_0_6.7px_5.3px_rgba(0,0,0,0.35),_0_12.5px_10px_rgba(0,0,0,0.4)] overflow-hidden font-semibold text-neutral-400 tracking-tight bg-neutral-800 border-neutral-600 border rounded-full pt-[12px] pr-[20px] pb-[12px] pl-[20px] items-center justify-center disabled:cursor-wait"
       >
@@ -97,9 +118,18 @@ export function HeroConnectButton() {
           className="absolute bottom-0 left-1/2 h-[1px] w-[70%] -translate-x-1/2 transition-all duration-[1000ms] ease-[cubic-bezier(0.15,0.83,0.66,1)] group-hover:opacity-80 bg-gradient-to-r from-transparent via-neutral-200 to-transparent rounded-full blur-[2px]"
         />
       </button>
-      {error && (
-        <p className="text-xs text-red-400 font-geist text-center max-w-sm">{error}</p>
+      {step === "signing" && !isBusy && (
+        <button
+          onClick={() => {
+            signOut();
+            setPickerOpen(true);
+          }}
+          className="text-xs font-geist text-neutral-500 hover:text-neutral-900 underline underline-offset-2"
+        >
+          Use a different wallet
+        </button>
       )}
+      <WalletPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </div>
   );
 }
