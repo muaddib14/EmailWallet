@@ -6,6 +6,7 @@ import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
 import { WalletAuthProvider } from "@/lib/WalletAuthProvider";
 import AuthErrorToast from "@/components/AuthErrorToast";
+import ToastHost from "@/components/Toast";
 
 export default function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -16,6 +17,7 @@ export default function Providers({ children }: { children: ReactNode }) {
         <WalletAuthProvider>
           {children}
           <AuthErrorToast />
+          <ToastHost />
         </WalletAuthProvider>
       </QueryClientProvider>
     </WagmiProvider>

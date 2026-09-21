@@ -1,6 +1,6 @@
 const CACHE_KEY = "walletmail:auth:v1";
 
-type CachedAuth = {
+export type CachedAuth = {
   address: string;
   sessionSignature: string;
   encryptionSignature: string;

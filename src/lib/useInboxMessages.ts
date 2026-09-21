@@ -20,6 +20,15 @@ export type RawMessage = {
   readByRecipient: boolean | null;
   /** When the other side first opened it (null if unread / pre-receipt era). */
   readAt: string | null;
+  /** On-chain payment proof for a payment-request message (null when unpaid). */
+  paidTxHash: string | null;
+  paidAmountWei: string | null;
+};
+
+export type PaymentRequest = {
+  amountWei: string;
+  token: string;
+  note: string;
 };
 
 export type DecryptedMessage = RawMessage & {
@@ -28,7 +37,35 @@ export type DecryptedMessage = RawMessage & {
   direction: "in" | "out";
   counterparty: string;
   isSelfSend: boolean;
+  /** Present when the decrypted body is a payment-request envelope. */
+  payment: PaymentRequest | null;
 };
+
+/** A payment-request body is a JSON envelope; anything else is plain prose. */
+export function parsePaymentRequest(body: string): PaymentRequest | null {
+  const trimmed = body.trim();
+  if (!trimmed.startsWith("{")) return null;
+  try {
+    const obj: unknown = JSON.parse(trimmed);
+    if (
+      typeof obj !== "object" ||
+      obj === null ||
+      (obj as Record<string, unknown>).kind !== "payment-request" ||
+      typeof (obj as Record<string, unknown>).amountWei !== "string" ||
+      typeof (obj as Record<string, unknown>).token !== "string"
+    ) {
+      return null;
+    }
+    const rec = obj as Record<string, unknown>;
+    return {
+      amountWei: rec.amountWei as string,
+      token: rec.token as string,
+      note: typeof rec.note === "string" ? rec.note : "",
+    };
+  } catch {
+    return null;
+  }
+}
 
 /** Groups replies with their root: a message's own id when it started a thread. */
 export function threadKeyOf(m: { threadId: string | null; id: string }) {
@@ -135,7 +172,7 @@ export function useInboxMessages(myAddress: string) {
               decryptFrom(counterpartyKey, keyPair.secretKey, msg.bodyCiphertext)) ||
             "(unable to decrypt)";
 
-          return { ...msg, direction, counterparty, isSelfSend, subject, body };
+          return { ...msg, direction, counterparty, isSelfSend, subject, body, payment: parsePaymentRequest(body) };
         })
       );
 

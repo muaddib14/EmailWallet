@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWalletAuth } from "@/lib/useWalletAuth";
-import { loadAuthCache } from "@/lib/authSessionCache";
 import { useInboxMessages, groupThreads, threadKeyOf, type DecryptedMessage } from "@/lib/useInboxMessages";
 import { useDrafts, type Draft } from "@/lib/useDrafts";
 import { listContacts } from "@/lib/displayName";
@@ -14,6 +13,8 @@ import MessageListPanel, { type BulkAction } from "@/components/inbox/MessageLis
 import MessageDetailPanel from "@/components/inbox/MessageDetailPanel";
 import DraftsListPanel from "@/components/inbox/DraftsListPanel";
 import ComposeModal, { type ComposeContact } from "@/components/inbox/ComposeModal";
+import RequestPaymentModal from "@/components/inbox/RequestPaymentModal";
+import { toast } from "@/components/Toast";
 import SettingsModal from "@/components/inbox/SettingsModal";
 import type { Folder } from "@/components/inbox/types";
 
@@ -22,35 +23,31 @@ export default function InboxPage() {
   const router = useRouter();
 
   // Logged out (or session gone): back to the landing page instead of a
-  // dead-end gate screen. Two cases:
-  // - nothing cached and wallet idle -> nothing will ever restore, bounce now
-  // - signatures cached but wallet still reconnecting -> wait briefly, then bounce
+  // dead-end gate screen. The bounce waits ~3s when idle so wallet
+  // auto-reconnect + the sibling-tab rescue can still land — bouncing
+  // instantly would kill a restore that's already in flight. No timer state
+  // needed: the effect itself performs the bounce, so there is no extra
+  // setState for the lint rule to complain about.
   useEffect(() => {
     if (isAuthenticated && address) return;
     if (step === "signing" || step === "connecting" || isBusy) return;
-    if (!loadAuthCache()) {
-      router.replace("/");
-      return;
-    }
-    const timer = setTimeout(() => router.replace("/"), 4000);
+    const timer = setTimeout(() => router.replace("/"), 3000);
     return () => clearTimeout(timer);
   }, [isAuthenticated, address, step, isBusy, router]);
 
   if (!isAuthenticated || !address) {
-    // Mid-sign or wallet reconnecting: minimal loader plus the picker entry
-    // point — no gate copy, no extra links.
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 gap-4">
-        {step === "signing" || step === "connecting" || isBusy ? (
-          <HeroConnectButton />
-        ) : (
-          <span
-            className="h-6 w-6 rounded-full border-2 border-neutral-200 border-t-neutral-900 animate-spin"
-            aria-label="Loading"
-          />
-        )}
-      </div>
-    );
+    // Mid-sign: entry point with the picker auto-opened. Anything else:
+    // render nothing (restoring, or about to bounce) — never an empty
+    // button hanging in the middle of the page.
+    if (step === "signing" || step === "connecting" || isBusy) {
+      const needsSign = step === "signing" && !isBusy;
+      return (
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 gap-4">
+          <HeroConnectButton autoOpen={needsSign} />
+        </div>
+      );
+    }
+    return null;
   }
 
   return <InboxApp myAddress={address} />;
@@ -64,6 +61,8 @@ type ComposeState = {
   threadId?: string | null;
 };
 
+type PaymentRequestState = { to: string; threadId: string };
+
 function InboxApp({ myAddress }: { myAddress: string }) {
   const { messages, error, isLoading, lastSyncedAt, refresh, setMessageFlags, purgeMessage } =
     useInboxMessages(myAddress);
@@ -73,6 +72,7 @@ function InboxApp({ myAddress }: { myAddress: string }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [compose, setCompose] = useState<ComposeState | null>(null);
+  const [requesting, setRequesting] = useState<PaymentRequestState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
 
@@ -289,6 +289,10 @@ function InboxApp({ myAddress }: { myAddress: string }) {
                   body: `\n\n---------- Forwarded message ----------\nFrom: ${msg.direction === "out" ? myAddress : msg.counterparty}\nDate: ${new Date(msg.createdAt).toLocaleString()}\nSubject: ${msg.subject}\n\n${msg.body}`,
                 })
               }
+              onRequest={(msg) =>
+                setRequesting({ to: msg.counterparty, threadId: threadKeyOf(msg) })
+              }
+              onPaid={() => void refresh()}
             />
           ) : (
             <MessageListPanel
@@ -320,7 +324,10 @@ function InboxApp({ myAddress }: { myAddress: string }) {
           threadId={compose.threadId}
           contacts={contacts}
           onClose={() => setCompose(null)}
-          onSent={() => void refresh()}
+          onSent={() => {
+            toast("Message sent — encrypted & signed");
+            void refresh();
+          }}
           onSaveDraft={saveDraft}
           onDeleteDraft={deleteDraft}
         />
@@ -331,6 +338,15 @@ function InboxApp({ myAddress }: { myAddress: string }) {
         onClose={() => setSettingsOpen(false)}
         myAddress={myAddress}
       />
+
+      {requesting && (
+        <RequestPaymentModal
+          to={requesting.to}
+          threadId={requesting.threadId}
+          onClose={() => setRequesting(null)}
+          onSent={() => void refresh()}
+        />
+      )}
     </div>
   );
 }

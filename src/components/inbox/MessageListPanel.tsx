@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatEther } from "viem";
 import { Archive, Mail, MailOpen, Star, Trash2, X, Copy, Check } from "lucide-react";
 import type { Thread } from "@/lib/useInboxMessages";
 import type { Folder } from "./types";
@@ -16,6 +17,17 @@ function timeAgo(iso: string) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h`;
   return `${Math.floor(hours / 24)}d`;
+}
+
+function paymentSnippet(msg: { payment: { amountWei: string; token: string; note: string } | null }) {
+  if (!msg.payment) return null;
+  let amount = msg.payment.amountWei;
+  try {
+    amount = formatEther(BigInt(msg.payment.amountWei));
+  } catch {
+    // Fall back to raw wei on malformed data.
+  }
+  return `${amount} ${msg.payment.token}${msg.payment.note ? ` · ${msg.payment.note}` : ""}`;
 }
 
 export type BulkAction = "read" | "unread" | "archive" | "trash";
@@ -216,7 +228,7 @@ export default function MessageListPanel({
                       {msg.subject}
                     </span>
                     <span className="text-sm text-neutral-400 font-geist truncate hidden sm:inline">
-                      — {msg.body}
+                      — {paymentSnippet(msg) ?? msg.body}
                     </span>
                   </span>
 
@@ -225,7 +237,7 @@ export default function MessageListPanel({
                       e.stopPropagation();
                       onToggleStar(msg.id, !msg.isStarred);
                     }}
-                    className="shrink-0 hidden sm:block"
+                    className="shrink-0"
                     title="Star latest message"
                   >
                     <Star

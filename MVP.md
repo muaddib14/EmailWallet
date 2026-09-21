@@ -22,7 +22,7 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 ### 2. Autentikasi Wallet (2-signature, sesuai spec awal)
 - Connect wallet apapun (MetaMask, Rabby, dll) via `wagmi` injected connector
 - **Wallet picker modal**: klik Connect → pilih wallet yang terdeteksi via EIP-6963 (nama + icon asli dari wallet-nya), plus link install MetaMask/Rabby kalau belum kedetek. Portal ke `document.body` + animasi pop. Kalau sudah connected tapi signature belum lengkap, modal menawarkan Continue signing / ganti wallet / Cancel connection
-- **Auto-masuk inbox**: habis 2 signature sukses langsung `replace("/inbox")`, tanpa klik manual. Logout / sesi habis (`401`) → balik ke landing `/` (gate teks lama dihapus). `ViewportAnimations` re-scan tiap ganti route biar landing tidak blank setelah redirect client-side
+- **Auto-masuk inbox**: habis 2 signature sukses langsung `replace("/inbox")`, tanpa klik manual. Logout / sesi habis (`401`) → balik ke landing `/` tanpa layar gate (tombol kosongan di-takeout; bounce toleransi 3 detik biar rescue antar-tab sempat jalan)
 - **Signature #1 (session)**: pakai nonce sekali-pakai (SIWE-style) — `GET /api/session/nonce` → sign → `POST /api/session` verify + consume nonce atomic → httpOnly cookie 24 jam
 - **Signature #2 (encryption)**: derive NaCl box keypair (curve25519-xsalsa20-poly1305, algoritma sama kayak `eth_getEncryptionPublicKey` MetaMask lama). Secret key **gak pernah** ke server, cuma public key yang di-publish
 - Session + encryption signature di-cache di `sessionStorage` (bukan localStorage) biar refresh gak minta tanda tangan ulang — trade-off keamanan yang udah didiskusikan & disetujui
@@ -32,6 +32,7 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 - Subjek & body dienkripsi di browser pakai `tweetnacl` box encryption, server cuma nyimpen ciphertext
 - Sender & recipient sama-sama bisa decrypt (Diffie-Hellman shared secret simetris)
 - `messageHash` (keccak256 dari plaintext) ditandatangani pengirim → bukti otentisitas tanpa buka isi pesan
+- **Public verifier** (`/verify`, `/verify/[id]`): endpoint publik read-only (cuma from/hash/signature/waktu — tanpa toAddress, ciphertext, threadId; rate-limit per IP) + halaman yang recovery signer **di browser** via viem. Tombol share di detail pesan copy proof link. Terverifikasi 4/4 pesan asli cocok
 - Drafts dienkripsi ke **public key sendiri** (self-box), karena recipient mungkin belum valid pas masih ngetik
 
 ### 4. Inbox App (`/inbox`)
@@ -48,20 +49,28 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 - Trash: soft-delete + Restore + Delete Forever (purge cuma di sisi user yang mem-purge, gak nyentuh salinan pihak lain)
 - **Read receipt**: tiap flag row nyimpen `readAt` (di-stamp pas pertama kali dibuka). Query list nge-join flag row sisi lawan, jadi pengirim lihat ✓✓ hijau + waktu dibaca di list Sent & detail pesan ("Read · <waktu>" / "Sent · not read yet"). Self-send gak ada receipt. Data di-refresh otomatis pas pesan terkirim dibuka
 
-### 5. Database (Neon Postgres via Drizzle)
+### 5. In-App Payments (testnet, tanpa uang asli)
+- Request = pesan terenkripsi ber-envelope JSON (`kind: payment-request`) — nominal privat, tanpa tabel request
+- Tombol Request di thread (modal: jumlah tETH + catatan, max 1000) → terkirim dalam thread yang sama
+- Card payment di thread: Unpaid (tombol Pay sisi payer) / Waiting (sisi requester) / Partial / Paid ✓ + link explorer testnet
+- Pay: wajib switch ke Robinhood Chain Testnet → `sendTransaction` native → `POST /api/payments` verifikasi via RPC (tx ada, receipt sukses, from=payer, to=requester native langsung, value > 0, hash belum diklaim — unique index anti double-claim)
+- Server simpan nilai teramati (`amount_wei`, publik on-chain); client bandingkan dengan nominal terenkripsi → full vs partial. Server tidak pernah lihat nominal ekspektasi
+- Preflight terverifikasi: RPC chainId 46630, tx mainnet tidak kelihatan di testnet, envelope roundtrip OK
+
+### 6. Database (Neon Postgres via Drizzle)
 Tabel: `wallets`, `messages`, `message_flags` (per-user, lihat poin di atas), `drafts`, `sessions`, `login_nonces`, `names` (siap tapi belum ada yang isi — lihat bagian "Belum")
 
-### 6. Keamanan (hasil audit + fix)
+### 7. Keamanan (hasil audit + fix)
 - ✅ Session replay attack — closed (nonce sekali pakai + atomic consume)
 - ✅ Limit ukuran payload (`20KB`/field) di messages & drafts — cegah storage abuse
 - ✅ Rate limiting di `/api/session`, `/api/session/nonce`, `/api/messages`, `/api/wallets/publish-key` — in-memory, per-instance (jujur: bukan distributed, tapi nutup kasus umum)
 - ✅ Validasi panjang/format `encryptionPublicKey`
 
-### 7. Welcome Message (fitur baru, terinspirasi Proton)
+### 8. Welcome Message (fitur baru, terinspirasi Proton)
 - Wallet baru yang pertama kali publish encryption key otomatis dapat **3 pesan resmi** dari wallet sistem ("Wallet Mail Team") — pesan asli, ditandatangani & dienkripsi lewat jalur yang sama kayak pesan biasa (bukan data dummy)
 - Butuh `SYSTEM_WALLET_PRIVATE_KEY` di env (sudah di-generate, ada di `.env` lokal, **belum** di-set di Vercel)
 
-### 8. Logo Wallet Resmi
+### 9. Logo Wallet Resmi
 - MetaMask & Rabby: SVG resmi dari sumber asli mereka (metamask.io/assets, RabbyHub/logo GitHub) — bukan tebakan/scrape pihak ketiga
 - Robinhood Wallet, WalletConnect, Coinbase Wallet: dari simple-icons (registry brand SVG terverifikasi)
 

@@ -58,9 +58,9 @@ export function NavConnectButton() {
   );
 }
 
-export function HeroConnectButton() {
+export function HeroConnectButton({ autoOpen }: { autoOpen?: boolean }) {
   const { step, isBusy } = useWalletAuth();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(!!autoOpen);
 
   if (step === "ready") {
     return (

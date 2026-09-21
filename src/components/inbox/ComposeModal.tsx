@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Minus, Maximize2, Minimize2, X, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Minus, Maximize2, Minimize2, X, Trash2, Check } from "lucide-react";
 import { useSignMessage } from "wagmi";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
@@ -66,7 +66,49 @@ export default function ComposeModal({
   const [toFocused, setToFocused] = useState(false);
   const toBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  type ToState =
+    | { status: "idle" }
+    | { status: "checking" }
+    | { status: "valid"; resolved: string; viaAlias: boolean }
+    | { status: "invalid"; hint: string };
+  const [toState, setToState] = useState<ToState>({ status: "idle" });
+  const toReq = useRef(0);
+
   const hasContent = to.trim() || subject.trim() || body.trim();
+
+  /** A typed alias (e.g. "Mom") resolves locally to its address — instant, no network. */
+  function aliasToAddress(raw: string): string | null {
+    const q = raw.trim().toLowerCase();
+    if (!q) return null;
+    return contacts.find((c) => c.name.toLowerCase() === q)?.address ?? null;
+  }
+
+  // Live recipient check, debounced. All state updates happen inside async
+  // callbacks (never synchronously in the effect body).
+  useEffect(() => {
+    const raw = to.trim();
+    if (!raw) return;
+    const normalized = aliasToAddress(raw) ?? raw;
+    const timer = setTimeout(() => {
+      const cur = ++toReq.current;
+      setToState({ status: "checking" });
+      void resolveRecipient(normalized).then(
+        (r) => {
+          if (toReq.current === cur)
+            setToState({ status: "valid", resolved: r.address, viaAlias: normalized !== raw });
+        },
+        (err) => {
+          if (toReq.current === cur)
+            setToState({
+              status: "invalid",
+              hint: err instanceof Error ? err.message : "Couldn't resolve that recipient.",
+            });
+        }
+      );
+    }, 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [to]);
 
   const suggestions = useMemo(() => {
     const q = to.trim().toLowerCase();
@@ -86,6 +128,8 @@ export default function ComposeModal({
     setToFocused(false);
   }
 
+  const shownToState: ToState = to.trim() ? toState : { status: "idle" };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyPair) {
@@ -96,7 +140,7 @@ export default function ComposeModal({
     setStatus("sending");
     setError(null);
     try {
-      const recipient = await resolveRecipient(to);
+      const recipient = await resolveRecipient(aliasToAddress(to) ?? to);
 
       const subjectCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, subject);
       const bodyCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, body);
@@ -234,6 +278,21 @@ export default function ComposeModal({
                 autoComplete="off"
                 className="flex-1 min-w-0 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
               />
+              <span className="shrink-0 ml-2" aria-live="polite">
+                {shownToState.status === "checking" && (
+                  <span className="block h-4 w-4 rounded-full border-2 border-neutral-200 border-t-neutral-500 animate-spin" />
+                )}
+                {shownToState.status === "valid" && (
+                  <span title={shortAddress(shownToState.resolved)}>
+                    <Check className="w-4 h-4 text-green-600" />
+                  </span>
+                )}
+                {shownToState.status === "invalid" && (
+                  <span title={shownToState.hint}>
+                    <X className="w-4 h-4 text-red-500" />
+                  </span>
+                )}
+              </span>
               {toFocused && suggestions.length > 0 && (
                 <ul className="absolute left-0 right-0 top-full mt-1 rounded-xl border border-neutral-200 bg-white shadow-xl overflow-hidden z-10">
                   {suggestions.map((c) => (
@@ -264,6 +323,14 @@ export default function ComposeModal({
                 </ul>
               )}
             </div>
+            {shownToState.status === "invalid" && (
+              <p className="py-1.5 text-xs text-red-600 font-geist">{shownToState.hint}</p>
+            )}
+            {shownToState.status === "valid" && shownToState.viaAlias && (
+              <p className="py-1.5 text-xs text-neutral-400 font-geist">
+                → <span className="font-mono">{shortAddress(shownToState.resolved)}</span>
+              </p>
+            )}
             <div className="flex items-center border-b border-neutral-200 py-2.5">
               <label htmlFor="composeSubject" className="text-sm text-neutral-400 font-geist w-16 shrink-0 whitespace-nowrap">
                 Subject

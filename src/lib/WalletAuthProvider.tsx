@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { SESSION_MESSAGE, ENCRYPTION_MESSAGE } from "@/lib/authMessages";
 import { deriveKeyPair, publicKeyToBase64, type BoxKeyPair } from "@/lib/crypto";
 import { saveAuthCache, loadAuthCache, clearAuthCache } from "@/lib/authSessionCache";
+import { requestAuthFromSibling, serveAuthToSiblings } from "@/lib/authBridge";
+import { toast } from "@/components/Toast";
 
 export type AuthStep = "disconnected" | "connecting" | "signing" | "ready";
 
@@ -87,30 +89,54 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const restoreAttempted = useRef(false);
 
+  // Answer auth requests from sibling tabs (e.g. a proof link opened in a
+  // new tab while the inbox is still open elsewhere).
+  useEffect(() => serveAuthToSiblings(loadAuthCache), []);
+
   // Restore a cached sign-in once wagmi reports the wallet reconnected after
   // a refresh. Runs once per address change (guards on restoreAttempted so
   // it doesn't fight with a fresh connectAndSign() call in the same tab).
+  // Falls back to asking sibling tabs when this tab's own cache is empty —
+  // all state updates happen in async callbacks, never synchronously here.
   useEffect(() => {
     if (!isConnected || !address || restoreAttempted.current) return;
     restoreAttempted.current = true;
+    // Snapshot for the async flow below — closure narrowing doesn't carry
+    // the guard above into `restore()`.
+    const walletAddress = address;
+    let cancelled = false;
 
-    const cached = loadAuthCache();
-    if (!cached || cached.address.toLowerCase() !== address.toLowerCase()) {
-      if (cached) clearAuthCache();
-      return;
+    function applyCached(cached: { sessionSignature: string; encryptionSignature: string }) {
+      setSessionSignature(cached.sessionSignature);
+      setKeyPair(deriveKeyPair(cached.encryptionSignature));
+      setEncryptionSignature(cached.encryptionSignature);
+      // The httpOnly session cookie is still attached to every request by the
+      // browser regardless of this reload, so there's no need to re-hit
+      // /api/session here — only the client-side signatures needed restoring.
     }
 
-    // Restoring from sessionStorage (an external system) once the wallet
-    // reconnects is exactly the "subscribe to an external system" case the
-    // lint rule carves out — not the accidental-sync-setState case it guards
-    // against.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSessionSignature(cached.sessionSignature);
-    setKeyPair(deriveKeyPair(cached.encryptionSignature));
-    setEncryptionSignature(cached.encryptionSignature);
-    // The httpOnly session cookie is still attached to every request by the
-    // browser regardless of this reload, so there's no need to re-hit
-    // /api/session here — only the client-side signatures needed restoring.
+    async function restore() {
+      const direct = loadAuthCache();
+      if (direct) {
+        if (direct.address.toLowerCase() === walletAddress.toLowerCase()) {
+          if (!cancelled) applyCached(direct);
+          return;
+        }
+        clearAuthCache();
+      }
+      const bridged = await requestAuthFromSibling();
+      if (cancelled) return;
+      if (bridged && bridged.address.toLowerCase() === walletAddress.toLowerCase()) {
+        applyCached(bridged);
+        saveAuthCache(bridged); // seed this tab so refreshes don't re-ask
+        toast("Signed in via your open tab — no signatures needed");
+      }
+    }
+
+    void restore();
+    return () => {
+      cancelled = true;
+    };
   }, [isConnected, address]);
 
   const step: AuthStep = useMemo(() => {
@@ -152,6 +178,15 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
         }
         const result = await connectAsync({ connector: target });
         currentAddress = result.accounts[0];
+        // Remember which wallet entry was used (stable rdns like
+        // "io.metamask" / "app.phantom", falling back to the name) so the
+        // picker can badge it "Last used" next time.
+        try {
+          const key = (target as Connector & { rdns?: string }).rdns ?? target.name;
+          localStorage.setItem("walletmail:last-wallet", key);
+        } catch {
+          // Storage unavailable — the badge just won't show.
+        }
       }
 
       if (!currentAddress) {

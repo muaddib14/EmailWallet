@@ -79,6 +79,30 @@ export const messageFlags = pgTable(
   (table) => [uniqueIndex("message_flags_pk").on(table.messageId, table.address)]
 );
 
+// Proof that a payment request inside a thread was actually paid on-chain.
+// Only the tx hash is stored — it was public on-chain anyway. The request
+// itself (amount, note) lives inside the encrypted message body, so amounts
+// stay private between the two sides. Testnet-only for now (no real money).
+export const paymentReceipts = pgTable(
+  "payment_receipts",
+  {
+    id: text("id").primaryKey(), // uuid
+    messageId: text("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    txHash: text("tx_hash").notNull(),
+    // Exact native value observed on-chain (wei, decimal string). The client
+    // compares it to the encrypted request amount to show full vs partial
+    // payment — the server never sees the expected amount itself.
+    amountWei: text("amount_wei").notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("payment_receipts_message_idx").on(table.messageId),
+    uniqueIndex("payment_receipts_tx_idx").on(table.txHash),
+  ]
+);
+
 // Drafts are self-encrypted (owner's own public key, not the recipient's —
 // the recipient may not even be resolved yet while still typing) so the
 // server never sees plaintext even for unsent mail. `toRaw` keeps whatever

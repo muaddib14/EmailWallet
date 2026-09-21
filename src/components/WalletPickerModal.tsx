@@ -65,6 +65,27 @@ export default function WalletPickerModal({ open, onClose }: Props) {
 
   const detected = useMemo(() => connectors.filter((c) => c.type === "injected"), [connectors]);
 
+  // Last-used wallet key, read fresh on every render while open (no state —
+  // the modal only renders when `open` flips, so this is always current).
+  // Matched by stable rdns ("io.metamask", "app.phantom") with name fallback,
+  // mirroring what the provider stores after a successful connect.
+  const lastUsed =
+    open && typeof window !== "undefined"
+      ? (() => {
+          try {
+            return localStorage.getItem("walletmail:last-wallet");
+          } catch {
+            return null;
+          }
+        })()
+      : null;
+
+  function isLastUsed(connector: Connector) {
+    if (!lastUsed) return false;
+    const rdns = (connector as Connector & { rdns?: string }).rdns;
+    return rdns === lastUsed || connector.name === lastUsed;
+  }
+
   const missingBrands = useMemo(() => {
     const names = detected.map((c) => c.name.toLowerCase()).join(" ");
     return (["MetaMask", "Rabby"] as const).filter(
@@ -181,9 +202,11 @@ export default function WalletPickerModal({ open, onClose }: Props) {
                           <span className="block text-sm font-geist font-medium truncate">
                             {connector.name}
                           </span>
-                          <span className="shrink-0 rounded-full bg-green-50 border border-green-200 px-2 py-px text-[10px] font-geist font-medium text-green-700">
-                            Detected
-                          </span>
+                          {isLastUsed(connector) && (
+                            <span className="shrink-0 rounded-full bg-neutral-100 border border-neutral-200 px-2 py-px text-[10px] font-geist font-medium text-neutral-500">
+                              Last used
+                            </span>
+                          )}
                         </span>
                         <span className="block mt-0.5 text-xs text-neutral-400 font-geist">
                           {busy ? "Check your wallet…" : "Ready to connect"}

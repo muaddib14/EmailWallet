@@ -43,6 +43,20 @@
       "when": 1789981746511,
       "tag": "0005_productive_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789982946942,
+      "tag": "0006_chemical_starhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789982992396,
+      "tag": "0007_complete_carmella_unuscione",
+      "breakpoints": true
     }
   ]
 }

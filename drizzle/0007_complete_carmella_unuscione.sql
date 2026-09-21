@@ -1,0 +1,1 @@
+ALTER TABLE "payment_receipts" ADD COLUMN "amount_wei" text NOT NULL;

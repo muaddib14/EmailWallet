@@ -10,11 +10,15 @@ import {
   RotateCcw,
   Forward,
   Pencil,
+  Share2,
+  Banknote,
 } from "lucide-react";
 import type { DecryptedMessage, Thread } from "@/lib/useInboxMessages";
 import { useDisplayName } from "@/lib/displayName";
 import { ContactAvatar, ContactLabel, shortAddress } from "./ContactName";
 import { ReceiptLabel } from "./ReadReceipt";
+import { PaymentCard } from "./PaymentCard";
+import { toast } from "@/components/Toast";
 
 function AliasEditor({ address }: { address: string }) {
   const [name, saveName] = useDisplayName(address);
@@ -83,6 +87,8 @@ export default function MessageDetailPanel({
   onPurge,
   onReply,
   onForward,
+  onRequest,
+  onPaid,
 }: {
   thread: Thread;
   myAddress: string;
@@ -94,10 +100,20 @@ export default function MessageDetailPanel({
   onPurge: (id: string) => void;
   onReply: (message: DecryptedMessage) => void;
   onForward: (message: DecryptedMessage) => void;
+  onRequest: (message: DecryptedMessage) => void;
+  onPaid: () => void;
 }) {
   const { messages, latest } = thread;
   const trashed = latest.isDeleted;
   const allArchived = messages.every((m) => m.isArchived);
+
+  function copyProofLink() {
+    const url = `${window.location.origin}/verify/${latest.id}`;
+    void navigator.clipboard?.writeText(url).then(
+      () => toast("Proof link copied — anyone can verify the signature"),
+      () => toast("Couldn't copy the link", "error")
+    );
+  }
 
   function archiveThread() {
     for (const m of messages) {
@@ -153,6 +169,13 @@ export default function MessageDetailPanel({
           {trashed ? (
             <>
               <button
+                onClick={copyProofLink}
+                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+                title="Copy public proof link"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
                 onClick={restoreThread}
                 className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
                 title="Restore thread"
@@ -169,6 +192,13 @@ export default function MessageDetailPanel({
             </>
           ) : (
             <>
+              <button
+                onClick={copyProofLink}
+                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+                title="Copy public proof link"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
               <button
                 onClick={archiveThread}
                 className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
@@ -224,9 +254,16 @@ export default function MessageDetailPanel({
                   />
                 </button>
               </div>
-              <p className="px-4 py-4 text-sm text-neutral-700 font-geist leading-relaxed whitespace-pre-wrap">
-                {message.body}
-              </p>
+              {!message.payment && (
+                <p className="px-4 py-4 text-sm text-neutral-700 font-geist leading-relaxed whitespace-pre-wrap">
+                  {message.body}
+                </p>
+              )}
+              {message.payment && (
+                <div className="px-4 py-4">
+                  <PaymentCard message={message} onPaid={onPaid} />
+                </div>
+              )}
               {mine && !message.isSelfSend && (
                 <p className="px-4 pb-3 text-xs font-geist">
                   <ReceiptLabel message={message} />
@@ -244,6 +281,15 @@ export default function MessageDetailPanel({
         </div>
         {!trashed && (
           <div className="flex items-center gap-2">
+            {!latest.isSelfSend && (
+              <button
+                onClick={() => onRequest(latest)}
+                className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-200 rounded-lg px-4 py-2 hover:bg-neutral-50 transition font-geist"
+              >
+                <Banknote className="w-4 h-4" />
+                Request
+              </button>
+            )}
             <button
               onClick={() => onForward(latest)}
               className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-200 rounded-lg px-4 py-2 hover:bg-neutral-50 transition font-geist"
