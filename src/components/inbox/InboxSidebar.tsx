@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { Folder } from "./types";
 import { FOLDER_LABELS } from "./types";
+import { useDisplayName } from "@/lib/displayName";
 
 const FOLDER_ICONS: Record<Folder, typeof InboxIcon> = {
   inbox: InboxIcon,
@@ -32,15 +33,20 @@ const COLLAPSE_KEY = "walletmail:sidebar-collapsed";
 export default function InboxSidebar({
   activeFolder,
   counts,
+  myAddress,
   onSelectFolder,
   onCompose,
+  onOpenSettings,
 }: {
   activeFolder: Folder;
   counts: Partial<Record<Folder, number>>;
+  myAddress: string;
   onSelectFolder: (folder: Folder) => void;
   onCompose: () => void;
+  onOpenSettings: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [displayName] = useDisplayName(myAddress);
 
   // Remembered per-browser only (not synced anywhere) — a layout preference,
   // not account data, so localStorage is the right tool here.
@@ -136,8 +142,30 @@ export default function InboxSidebar({
         })}
       </nav>
 
-      <div className="p-2 border-t border-neutral-200">
+      <div className="p-2 border-t border-neutral-200 space-y-0.5">
+        {!collapsed && (
+          <button
+            onClick={onOpenSettings}
+            title="Open settings"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/60 transition-colors text-left"
+          >
+            <span className="h-8 w-8 rounded-full bg-neutral-900 flex items-center justify-center text-xs font-geist font-semibold text-white shrink-0">
+              {displayName
+                ? displayName.slice(0, 1).toUpperCase()
+                : myAddress.slice(2, 4).toUpperCase()}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[13px] font-medium text-neutral-900 font-geist truncate">
+                {displayName || `${myAddress.slice(0, 6)}...${myAddress.slice(-4)}`}
+              </span>
+              <span className="block text-[10px] text-neutral-400 font-geist">
+                Robinhood Chain
+              </span>
+            </span>
+          </button>
+        )}
         <button
+          onClick={onOpenSettings}
           title={collapsed ? "Settings" : undefined}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-geist text-neutral-500 hover:text-neutral-900 hover:bg-white/60 transition-colors ${
             collapsed ? "justify-center" : ""

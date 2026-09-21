@@ -1,5 +1,6 @@
 import { randomUUID, randomBytes } from "crypto";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt, ne } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "./client";
 import { drafts, loginNonces, messageFlags, messages, names, sessions, wallets } from "./schema";
 
@@ -73,8 +74,11 @@ export async function resolveName(name: string) {
   return { ...row, encryptionPublicKey: wallet?.encryptionPublicKey ?? null };
 }
 
-/** Every message this address can currently see, with THEIR OWN flags joined in. */
+/** Every message this address can currently see, with THEIR OWN flags joined in,
+ * plus the OTHER side's read state (null for self-sends) so senders get read
+ * receipts without a second query. */
 export async function listMessagesForAddress(address: string) {
+  const otherFlags = alias(messageFlags, "other_flags");
   return db
     .select({
       id: messages.id,
@@ -83,14 +87,19 @@ export async function listMessagesForAddress(address: string) {
       subjectCiphertext: messages.subjectCiphertext,
       bodyCiphertext: messages.bodyCiphertext,
       threadId: messages.threadId,
-      createdAt: messages.createdAt,
-      isRead: messageFlags.isRead,
+      createdAt: messages.createdAt,      isRead: messageFlags.isRead,
       isStarred: messageFlags.isStarred,
       isArchived: messageFlags.isArchived,
       isDeleted: messageFlags.isDeleted,
+      readByRecipient: otherFlags.isRead,
+      readAt: otherFlags.readAt,
     })
     .from(messageFlags)
     .innerJoin(messages, eq(messages.id, messageFlags.messageId))
+    .leftJoin(
+      otherFlags,
+      and(eq(otherFlags.messageId, messages.id), ne(otherFlags.address, messageFlags.address))
+    )
     .where(eq(messageFlags.address, address))
     .orderBy(desc(messages.createdAt));
 }
@@ -143,12 +152,15 @@ export async function markMessage(
   address: string,
   patch: Partial<{ isRead: boolean; isStarred: boolean; isArchived: boolean; isDeleted: boolean }>
 ) {
-  const withDeletedAt =
-    "isDeleted" in patch ? { ...patch, deletedAt: patch.isDeleted ? new Date() : null } : patch;
+  const withTimestamps: Record<string, boolean | Date | null> = { ...patch };
+  if ("isDeleted" in patch) withTimestamps.deletedAt = patch.isDeleted ? new Date() : null;
+  // First open stamps readAt (drives the sender's read receipt); marking
+  // unread clears it again so a re-read gets a fresh timestamp.
+  if ("isRead" in patch) withTimestamps.readAt = patch.isRead ? new Date() : null;
 
   await db
     .update(messageFlags)
-    .set(withDeletedAt)
+    .set(withTimestamps)
     .where(and(eq(messageFlags.messageId, id), eq(messageFlags.address, address)));
 }
 
@@ -174,6 +186,7 @@ export type DraftInput = {
   toRaw: string;
   subjectCiphertext: string;
   bodyCiphertext: string;
+  threadId?: string | null;
 };
 
 export async function listDraftsForAddress(address: string) {
@@ -197,9 +210,7 @@ export async function upsertDraft(id: string | undefined, input: DraftInput) {
         .where(eq(drafts.id, id));
       return id;
     }
-  }
-
-  const newId = randomUUID();
+  }  const newId = randomUUID();
   await upsertWallet(input.ownerAddress);
   await db.insert(drafts).values({ id: newId, ...input });
   return newId;

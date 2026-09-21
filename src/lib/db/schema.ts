@@ -66,6 +66,11 @@ export const messageFlags = pgTable(
       .notNull()
       .references(() => wallets.address),
     isRead: boolean("is_read").default(false).notNull(),
+    // When this viewer first opened the message (set alongside isRead).
+    // The OTHER side's row drives read receipts: a sender sees their mail as
+    // "Read <readAt>" by looking at the recipient's flag row, never their own.
+    // Null for unread mail and for rows written before this column existed.
+    readAt: timestamp("read_at", { withTimezone: true }),
     isStarred: boolean("is_starred").default(false).notNull(),
     isArchived: boolean("is_archived").default(false).notNull(),
     isDeleted: boolean("is_deleted").default(false).notNull(),
@@ -87,6 +92,9 @@ export const drafts = pgTable("drafts", {
   toRaw: text("to_raw").default("").notNull(),
   subjectCiphertext: text("subject_ciphertext").default("").notNull(),
   bodyCiphertext: text("body_ciphertext").default("").notNull(),
+  // Carries the thread through a reply saved as draft and reopened later —
+  // without this, sending from a draft would silently start a new thread.
+  threadId: text("thread_id"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

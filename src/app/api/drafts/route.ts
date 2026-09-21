@@ -19,12 +19,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null);
-  const { toRaw, subjectCiphertext, bodyCiphertext } = body ?? {};
+  const { toRaw, subjectCiphertext, bodyCiphertext, threadId } = body ?? {};
 
   if (
     typeof toRaw !== "string" ||
     typeof subjectCiphertext !== "string" ||
-    typeof bodyCiphertext !== "string"
+    typeof bodyCiphertext !== "string" ||
+    (threadId !== undefined && threadId !== null && typeof threadId !== "string")
   ) {
     return NextResponse.json({ error: "Missing or invalid fields." }, { status: 400 });
   }
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
       toRaw,
       subjectCiphertext,
       bodyCiphertext,
+      threadId: threadId ?? null,
     });
     return NextResponse.json({ id }, { status: 201 });
   } catch (err) {

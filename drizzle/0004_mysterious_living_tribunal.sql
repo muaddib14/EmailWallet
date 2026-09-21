@@ -1,0 +1,1 @@
+ALTER TABLE "message_flags" ADD COLUMN "read_at" timestamp with time zone;

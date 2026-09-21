@@ -9,6 +9,7 @@ export type Draft = {
   toRaw: string;
   subject: string;
   body: string;
+  threadId: string | null;
   updatedAt: string;
 };
 
@@ -17,6 +18,7 @@ type RawDraft = {
   toRaw: string;
   subjectCiphertext: string;
   bodyCiphertext: string;
+  threadId: string | null;
   updatedAt: string;
 };
 
@@ -45,6 +47,7 @@ export function useDrafts() {
         toRaw: row.toRaw,
         subject: decryptFrom(ownPublicKeyB64, keyPair.secretKey, row.subjectCiphertext) ?? "",
         body: decryptFrom(ownPublicKeyB64, keyPair.secretKey, row.bodyCiphertext) ?? "",
+        threadId: row.threadId,
         updatedAt: row.updatedAt,
       }))
     );
@@ -58,7 +61,13 @@ export function useDrafts() {
   }, [refresh]);
 
   const saveDraft = useCallback(
-    async (id: string | undefined, toRaw: string, subject: string, body: string) => {
+    async (
+      id: string | undefined,
+      toRaw: string,
+      subject: string,
+      body: string,
+      threadId?: string | null
+    ) => {
       if (!keyPair || !ownPublicKeyB64) return undefined;
       const subjectCiphertext = encryptFor(ownPublicKeyB64, keyPair.secretKey, subject);
       const bodyCiphertext = encryptFor(ownPublicKeyB64, keyPair.secretKey, body);
@@ -66,7 +75,7 @@ export function useDrafts() {
       const res = await fetch(id ? `/api/drafts/${id}` : "/api/drafts", {
         method: id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toRaw, subjectCiphertext, bodyCiphertext }),
+        body: JSON.stringify({ toRaw, subjectCiphertext, bodyCiphertext, threadId: threadId ?? null }),
       });
       if (!res.ok) return undefined;
       const data = await res.json();

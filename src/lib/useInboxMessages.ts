@@ -10,11 +10,16 @@ export type RawMessage = {
   toAddress: string;
   subjectCiphertext: string;
   bodyCiphertext: string;
+  threadId: string | null;
   isRead: boolean;
   isStarred: boolean;
   isArchived: boolean;
   isDeleted: boolean;
   createdAt: string;
+  /** The OTHER side's read state (null for self-sends) — drives read receipts. */
+  readByRecipient: boolean | null;
+  /** When the other side first opened it (null if unread / pre-receipt era). */
+  readAt: string | null;
 };
 
 export type DecryptedMessage = RawMessage & {
@@ -22,7 +27,48 @@ export type DecryptedMessage = RawMessage & {
   body: string;
   direction: "in" | "out";
   counterparty: string;
+  isSelfSend: boolean;
 };
+
+/** Groups replies with their root: a message's own id when it started a thread. */
+export function threadKeyOf(m: { threadId: string | null; id: string }) {
+  return m.threadId ?? m.id;
+}
+
+export type Thread = {
+  key: string;
+  messages: DecryptedMessage[]; // oldest first
+  latest: DecryptedMessage;
+  unreadCount: number; // incoming, unread
+  starred: boolean; // any member starred
+};
+
+/** Groups flat messages into Gmail-style threads, newest thread first. */
+export function groupThreads(messages: DecryptedMessage[]): Thread[] {
+  const byKey = new Map<string, DecryptedMessage[]>();
+  for (const m of messages) {
+    const key = threadKeyOf(m);
+    const list = byKey.get(key);
+    if (list) list.push(m);
+    else byKey.set(key, [m]);
+  }
+  const threads: Thread[] = [];
+  for (const [key, list] of byKey) {
+    list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const latest = list[list.length - 1];
+    threads.push({
+      key,
+      messages: list,
+      latest,
+      unreadCount: list.filter((m) => m.direction === "in" && !m.isRead).length,
+      starred: list.some((m) => m.isStarred),
+    });
+  }
+  threads.sort(
+    (a, b) => new Date(b.latest.createdAt).getTime() - new Date(a.latest.createdAt).getTime()
+  );
+  return threads;
+}
 
 const publicKeyCache = new Map<string, string | null>();
 
@@ -45,7 +91,7 @@ async function getPublicKey(address: string): Promise<string | null> {
 
 /** Fetches every message for the signed-in wallet and decrypts it client-side. */
 export function useInboxMessages(myAddress: string) {
-  const { keyPair } = useWalletAuth();
+  const { keyPair, signOut } = useWalletAuth();
   const [messages, setMessages] = useState<DecryptedMessage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +103,12 @@ export function useInboxMessages(myAddress: string) {
     setError(null);
     try {
       const res = await fetch("/api/messages");
+      if (res.status === 401) {
+        // Server session expired or revoked: drop local auth so the inbox
+        // gate bounces back to the landing page instead of showing stale mail.
+        signOut();
+        throw new Error("Session expired. Please sign in again.");
+      }
       if (!res.ok) throw new Error("Failed to load messages.");
       const data: { messages: RawMessage[] } = await res.json();
 
@@ -70,6 +122,8 @@ export function useInboxMessages(myAddress: string) {
           const direction: "in" | "out" =
             msg.fromAddress.toLowerCase() === myAddressLower ? "out" : "in";
           const counterparty = direction === "out" ? msg.toAddress : msg.fromAddress;
+          const isSelfSend =
+            msg.fromAddress.toLowerCase() === msg.toAddress.toLowerCase();
           const counterpartyKey = await getPublicKey(counterparty);
 
           const subject =
@@ -81,7 +135,7 @@ export function useInboxMessages(myAddress: string) {
               decryptFrom(counterpartyKey, keyPair.secretKey, msg.bodyCiphertext)) ||
             "(unable to decrypt)";
 
-          return { ...msg, direction, counterparty, subject, body };
+          return { ...msg, direction, counterparty, isSelfSend, subject, body };
         })
       );
 
@@ -93,7 +147,7 @@ export function useInboxMessages(myAddress: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [keyPair, myAddress]);
+  }, [keyPair, myAddress, signOut]);
 
   useEffect(() => {
     // refresh() only sets state after an awaited fetch + decrypt pass — this

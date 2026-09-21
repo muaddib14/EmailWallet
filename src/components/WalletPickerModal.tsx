@@ -53,8 +53,9 @@ function ConnectorIcon({ connector }: { connector: Connector }) {
 }
 
 export default function WalletPickerModal({ open, onClose }: Props) {
-  const { connectors, connectAndSign, isBusy, step } = useWalletAuth();
+  const { connectors, connectAndSign, isBusy, step, signOut } = useWalletAuth();
   const [pickedUid, setPickedUid] = useState<string | null>(null);
+  const [resuming, setResuming] = useState(false);
   // Portal target: rendering straight into document.body keeps the modal
   // out of the landing page's filtered/animated wrappers — a lingering
   // `filter: blur(0)` from the entrance animations would otherwise trap
@@ -97,6 +98,17 @@ export default function WalletPickerModal({ open, onClose }: Props) {
     }
   }
 
+  async function handleResume() {
+    setResuming(true);
+    try {
+      await connectAndSign();
+    } finally {
+      setResuming(false);
+    }
+  }
+
+  const signing = step === "signing";
+
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
       <div
@@ -116,7 +128,9 @@ export default function WalletPickerModal({ open, onClose }: Props) {
               Connect a wallet
             </h2>
             <p className="mt-1 text-[13px] leading-snug text-neutral-500 font-geist">
-              Two signatures follow: a session key and your encryption key.
+              {signing
+                ? "Your wallet is connected — finish the two signatures, or switch to a different wallet below."
+                : "Two signatures follow: a session key and your encryption key."}
             </p>
           </div>
           <button
@@ -129,6 +143,27 @@ export default function WalletPickerModal({ open, onClose }: Props) {
         </div>
 
         <div className="mt-5">
+          {signing && (
+            <>
+              <button
+                onClick={() => void handleResume()}
+                disabled={isBusy}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-neutral-900 px-4 py-3.5 text-sm font-geist font-medium text-white hover:bg-neutral-800 active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-wait"
+              >
+                {resuming && (
+                  <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+                )}
+                {resuming ? "Check your wallet…" : "Continue signing"}
+              </button>
+              <div className="my-4 flex items-center gap-3" aria-hidden="true">
+                <span className="h-px flex-1 bg-neutral-200" />
+                <span className="text-[11px] font-geist text-neutral-400">
+                  or use a different wallet
+                </span>
+                <span className="h-px flex-1 bg-neutral-200" />
+              </div>
+            </>
+          )}
           {detected.length > 0 ? (
             <ul className="space-y-2">
               {detected.map((connector) => {
@@ -173,7 +208,7 @@ export default function WalletPickerModal({ open, onClose }: Props) {
             </div>
           )}
 
-          {missingBrands.length > 0 && (
+          {missingBrands.length > 0 && !signing && (
             <div className="mt-4 flex items-center justify-center gap-1 text-xs font-geist text-neutral-400">
               <span>Need a wallet?</span>
               {missingBrands.map((brandName, i) => {
@@ -194,6 +229,17 @@ export default function WalletPickerModal({ open, onClose }: Props) {
                   </span>
                 );
               })}
+            </div>
+          )}
+          {signing && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={signOut}
+                disabled={isBusy}
+                className="text-xs font-geist text-neutral-400 hover:text-neutral-900 underline underline-offset-2 transition-colors disabled:opacity-50"
+              >
+                Cancel connection
+              </button>
             </div>
           )}
         </div>

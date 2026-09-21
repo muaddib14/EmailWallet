@@ -21,7 +21,8 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 
 ### 2. Autentikasi Wallet (2-signature, sesuai spec awal)
 - Connect wallet apapun (MetaMask, Rabby, dll) via `wagmi` injected connector
-- **Wallet picker modal**: klik Connect → pilih wallet yang terdeteksi via EIP-6963 (nama + icon asli dari wallet-nya), plus link install MetaMask/Rabby kalau belum kedetek. Kalau sudah connected tapi signature belum lengkap, tombol langsung lanjut sign tanpa buka modal lagi
+- **Wallet picker modal**: klik Connect → pilih wallet yang terdeteksi via EIP-6963 (nama + icon asli dari wallet-nya), plus link install MetaMask/Rabby kalau belum kedetek. Portal ke `document.body` + animasi pop. Kalau sudah connected tapi signature belum lengkap, modal menawarkan Continue signing / ganti wallet / Cancel connection
+- **Auto-masuk inbox**: habis 2 signature sukses langsung `replace("/inbox")`, tanpa klik manual. Logout / sesi habis (`401`) → balik ke landing `/` (gate teks lama dihapus). `ViewportAnimations` re-scan tiap ganti route biar landing tidak blank setelah redirect client-side
 - **Signature #1 (session)**: pakai nonce sekali-pakai (SIWE-style) — `GET /api/session/nonce` → sign → `POST /api/session` verify + consume nonce atomic → httpOnly cookie 24 jam
 - **Signature #2 (encryption)**: derive NaCl box keypair (curve25519-xsalsa20-poly1305, algoritma sama kayak `eth_getEncryptionPublicKey` MetaMask lama). Secret key **gak pernah** ke server, cuma public key yang di-publish
 - Session + encryption signature di-cache di `sessionStorage` (bukan localStorage) biar refresh gak minta tanda tangan ulang — trade-off keamanan yang udah didiskusikan & disetujui
@@ -35,11 +36,17 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 
 ### 4. Inbox App (`/inbox`)
 - Layout list→detail (kayak Proton/Gmail) — list full-width, klik pesan baru detail full-width + tombol Back, bukan 3-kolom sempit
-- Sidebar collapsible (localStorage), compose sebagai floating panel ala Gmail (docked kanan-bawah, minimize/expand beneran fungsional)
-- Folder: **Inbox, Starred, Sent, Drafts, Archive, Trash** — semua fungsional beneran (bukan UI kosong)
+- **Threads**: reply membawa `threadId` (lewat compose, POST, sampai drafts biar tidak putus) — list grup per thread ala Gmail (badge jumlah, bold kalau ada yang unread), detail tampil stack per pesan (star per pesan, receipt per pesan keluar)
+- **Bulk action**: checkbox per thread (hover-reveal) + select-all + toolbar (mark read/unread, archive, trash)
+- **Address book privat**: alias lokal per alamat (localStorage, tidak on-chain) — tampil di list (avatar inisial + nama), bisa edit inline di detail ("+ Add name"), autocomplete di kolom To compose (alias tersimpan + recent)
+- **Forward**: tombol Forward dengan kutipan pesan asli; **Reply** preserve `Re:`/`Fwd:` prefix
+- Sidebar collapsible (localStorage) + kartu identitas (avatar, display name, chain) di atas Settings, compose sebagai floating panel ala Gmail (docked kanan-bawah, minimize/expand beneran fungsional, full-bleed di mobile)
+- **Mobile**: sidebar jadi drawer + hamburger di topbar, list padding adaptif, snippet disembunyikan di layar kecil
+- Folder: **Inbox, Starred, Sent, Drafts, Archive, Trash** — semua fungsional beneran (bukan UI kosong). Empty inbox ada CTA "Copy my address"
 - Search live (filter dari subjek/isi/lawan bicara yang udah didecrypt)
 - Flag (read/starred/archived/deleted) **per-viewer**, bukan shared row — recipient archive gak ikut archive di sisi pengirim (ini bug asli yang sempet ada & udah difix)
 - Trash: soft-delete + Restore + Delete Forever (purge cuma di sisi user yang mem-purge, gak nyentuh salinan pihak lain)
+- **Read receipt**: tiap flag row nyimpen `readAt` (di-stamp pas pertama kali dibuka). Query list nge-join flag row sisi lawan, jadi pengirim lihat ✓✓ hijau + waktu dibaca di list Sent & detail pesan ("Read · <waktu>" / "Sent · not read yet"). Self-send gak ada receipt. Data di-refresh otomatis pas pesan terkirim dibuka
 
 ### 5. Database (Neon Postgres via Drizzle)
 Tabel: `wallets`, `messages`, `message_flags` (per-user, lihat poin di atas), `drafts`, `sessions`, `login_nonces`, `names` (siap tapi belum ada yang isi — lihat bagian "Belum")
@@ -67,10 +74,10 @@ Tabel: `wallets`, `messages`, `message_flags` (per-user, lihat poin di atas), `d
 | **Naming system** (mint nama `.mail` jadi NFT) | Tabel `names` sudah ada, tapi **belum ada smart contract, belum ada UI mint**. Compose ke nama (`maya.mail`) akan selalu gagal resolve karena gak ada data |
 | **Robinhood Chain RPC asli** | wagmi masih pakai `mainnet` sebagai placeholder — chain ID/RPC resmi Robinhood Chain belum ketemu sumber terverifikasi |
 | **Deploy Vercel** | Kode sudah siap deploy, tapi `vercel login` butuh browser auth manual dari kamu. `DATABASE_URL` & `SYSTEM_WALLET_PRIVATE_KEY` juga belum di-set di Vercel env vars |
-| **Settings** | Tombol ada di sidebar, **belum ada fungsi/halaman sama sekali** |
+| **Settings** | ✅ Sudah (sesi ini): modal Settings — wallet + copy address, display name lokal (muncul di topbar, tidak ke server), encryption public key + status publish + tombol Publish now, sign out, about |
 | **Contacts & Notifications** | Sengaja **dihapus** dari sidebar (bukan dibangun) — gak ada rencana konkret buat fitur ini |
 | Rate limiting terdistribusi | Sekarang in-memory per-instance, gak nahan serangan dari banyak instance Vercel sekaligus. Upgrade ke Upstash Redis kalau perlu |
-| Read receipt | Disebut di brief awal, belum diimplementasi |
+| Wallet picker modal + error toast | ✅ Sudah (sesi ini): pilih MetaMask/Rabby/Phantom via EIP-6963 pakai portal modal, error auth jadi toast global |
 
 ---
 

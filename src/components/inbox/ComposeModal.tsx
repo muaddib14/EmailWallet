@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Minus, Maximize2, Minimize2, X, Trash2 } from "lucide-react";
 import { useSignMessage } from "wagmi";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
 import { encryptFor, hashPlaintext } from "@/lib/crypto";
+import type { Contact } from "@/lib/displayName";
+import { ContactAvatar } from "@/components/inbox/ContactName";
 
 type Status = "idle" | "sending" | "error";
+
+export type ComposeContact = Contact & { recent?: boolean };
+
+function shortAddress(address: string) {
+  return address.startsWith("0x") ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+}
 
 export default function ComposeModal({
   myAddress,
@@ -15,6 +23,8 @@ export default function ComposeModal({
   initialTo,
   initialSubject,
   initialBody,
+  threadId,
+  contacts,
   onClose,
   onSent,
   onSaveDraft,
@@ -26,9 +36,19 @@ export default function ComposeModal({
   initialTo?: string;
   initialSubject?: string;
   initialBody?: string;
+  /** Thread this reply belongs to (undefined for brand-new mail). */
+  threadId?: string | null;
+  /** Saved aliases + recent counterparties for To autocomplete. */
+  contacts: ComposeContact[];
   onClose: () => void;
   onSent: () => void;
-  onSaveDraft: (id: string | undefined, to: string, subject: string, body: string) => Promise<string | undefined>;
+  onSaveDraft: (
+    id: string | undefined,
+    to: string,
+    subject: string,
+    body: string,
+    threadId?: string | null
+  ) => Promise<string | undefined>;
   onDeleteDraft: (id: string) => Promise<void>;
 }) {
   const { keyPair } = useWalletAuth();
@@ -43,8 +63,28 @@ export default function ComposeModal({
   const [minimized, setMinimized] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [sent, setSent] = useState(false);
+  const [toFocused, setToFocused] = useState(false);
+  const toBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasContent = to.trim() || subject.trim() || body.trim();
+
+  const suggestions = useMemo(() => {
+    const q = to.trim().toLowerCase();
+    if (!q) return [];
+    return contacts
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.address.toLowerCase().includes(q)
+      )
+      .slice(0, 6);
+  }, [to, contacts]);
+
+  function pickSuggestion(c: ComposeContact) {
+    if (toBlurTimer.current) clearTimeout(toBlurTimer.current);
+    setTo(c.address);
+    setToFocused(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +112,7 @@ export default function ComposeModal({
           bodyCiphertext,
           messageHash,
           senderSignature,
+          threadId: threadId ?? null,
         }),
       });
 
@@ -92,7 +133,7 @@ export default function ComposeModal({
 
   async function handleClose() {
     if (!sent && hasContent) {
-      const savedId = await onSaveDraft(currentDraftId, to, subject, body);
+      const savedId = await onSaveDraft(currentDraftId, to, subject, body, threadId ?? null);
       if (savedId) setCurrentDraftId(savedId);
     }
     onClose();
@@ -104,14 +145,16 @@ export default function ComposeModal({
   }
 
   const panelSize = expanded
-    ? "inset-6 sm:inset-12"
-    : "bottom-0 right-6 w-full max-w-[420px] h-[480px] max-h-[calc(100vh-2rem)]";
+    ? "inset-4 sm:inset-12"
+    : "bottom-0 right-6 max-sm:left-4 max-sm:right-4 w-full max-w-[420px] max-sm:max-w-none h-[480px] max-h-[calc(100vh-2rem)]";
 
   return (
     <form
       onSubmit={handleSubmit}
       className={`fixed z-50 flex flex-col rounded-t-xl border border-neutral-200 border-b-0 bg-white shadow-2xl overflow-hidden transition-all ${
-        minimized ? "bottom-0 right-6 w-full max-w-[420px] h-12" : panelSize
+        minimized
+          ? "bottom-0 right-6 max-sm:left-4 max-sm:right-4 w-full max-w-[420px] max-sm:max-w-none h-12"
+          : panelSize
       }`}
     >
       {/* Header — Gmail-style light title bar */}
@@ -165,7 +208,7 @@ export default function ComposeModal({
       {!minimized && (
         <>
           <div className="px-4 shrink-0">
-            <div className="flex items-center border-b border-neutral-200 py-2.5">
+            <div className="relative flex items-center border-b border-neutral-200 py-2.5">
               <label htmlFor="composeTo" className="text-sm text-neutral-400 font-geist w-16 shrink-0 whitespace-nowrap">
                 To
               </label>
@@ -173,10 +216,53 @@ export default function ComposeModal({
                 id="composeTo"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                placeholder="0x... or maya.mail"
+                onFocus={() => setToFocused(true)}
+                onBlur={() => {
+                  // Let a suggestion mousedown land before closing.
+                  toBlurTimer.current = setTimeout(() => setToFocused(false), 120);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setToFocused(false);
+                  if (e.key === "Enter" && suggestions.length > 0 && toFocused) {
+                    // Enter with an open list picks the top match.
+                    e.preventDefault();
+                    pickSuggestion(suggestions[0]);
+                  }
+                }}
+                placeholder="Name, alias, or 0x…"
                 required
+                autoComplete="off"
                 className="flex-1 min-w-0 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
               />
+              {toFocused && suggestions.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full mt-1 rounded-xl border border-neutral-200 bg-white shadow-xl overflow-hidden z-10">
+                  {suggestions.map((c) => (
+                    <li key={c.address}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          pickSuggestion(c);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-neutral-50 transition-colors"
+                      >
+                        <ContactAvatar address={c.address} size="sm" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-geist font-medium text-neutral-900 truncate">
+                            {c.name || shortAddress(c.address)}
+                          </span>
+                          <span className="block text-[11px] font-mono text-neutral-400 truncate">
+                            {c.address}
+                          </span>
+                        </span>
+                        {c.recent && !c.name && (
+                          <span className="text-[10px] font-geist text-neutral-400 shrink-0">recent</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="flex items-center border-b border-neutral-200 py-2.5">
               <label htmlFor="composeSubject" className="text-sm text-neutral-400 font-geist w-16 shrink-0 whitespace-nowrap">

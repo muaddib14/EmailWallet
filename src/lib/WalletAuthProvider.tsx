@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useAccount, useConnect, useDisconnect, useSignMessage } from "wagmi";
 import type { Connector } from "wagmi";
+import { useRouter } from "next/navigation";
 import { SESSION_MESSAGE, ENCRYPTION_MESSAGE } from "@/lib/authMessages";
 import { deriveKeyPair, publicKeyToBase64, type BoxKeyPair } from "@/lib/crypto";
 import { saveAuthCache, loadAuthCache, clearAuthCache } from "@/lib/authSessionCache";
@@ -73,10 +74,11 @@ function friendlyAuthError(err: unknown): string {
  * looking like nothing happened.
  */
 export function WalletAuthProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, connector: activeConnector } = useAccount();
   const { connectAsync, connectors, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
+  const router = useRouter();
 
   const [sessionSignature, setSessionSignature] = useState<string | null>(null);
   const [encryptionSignature, setEncryptionSignature] = useState<string | null>(null);
@@ -125,7 +127,21 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     try {
       let currentAddress = address;
 
-      if (!isConnected) {
+      // Switching wallets mid-flow (e.g. "use a different wallet" from the
+      // picker while half-signed): drop the previous wallet's partial
+      // signatures first, otherwise the new wallet inherits a session
+      // signature it never made.
+      const switching =
+        !!picked && (!isConnected || picked.uid !== activeConnector?.uid);
+      if (switching) {
+        setSessionSignature(null);
+        setEncryptionSignature(null);
+        setKeyPair(null);
+        clearAuthCache();
+        currentAddress = undefined;
+      }
+
+      if (!isConnected || switching) {
         const target =
           picked ??
           connectors.find((c) => c.type === "injected") ??
@@ -170,6 +186,10 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
       setEncryptionSignature(encryptionKey);
       saveAuthCache({ address: currentAddress, sessionSignature: session, encryptionSignature: encryptionKey });
 
+      // Straight to the inbox — no "click again to continue" after signing.
+      // replace() (not push) so Back doesn't land on a stale signed-out view.
+      router.replace("/inbox");
+
       // Publish only the public half so others can encrypt to this wallet.
       // Failure here shouldn't block sign-in — it just means composing to
       // this address won't work for other people until it succeeds later.
@@ -186,7 +206,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSigning(false);
     }
-  }, [address, isConnected, connectors, connectAsync, signMessageAsync]);
+  }, [address, isConnected, activeConnector, connectors, connectAsync, signMessageAsync, router]);
 
   const signOut = useCallback(() => {
     setSessionSignature(null);

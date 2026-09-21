@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, LogOut } from "lucide-react";
+import { Menu, RefreshCw, LogOut } from "lucide-react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
+import { useDisplayName } from "@/lib/displayName";
 
 function timeAgo(date: Date | null) {
   if (!date) return "never";
@@ -18,6 +19,7 @@ export default function InboxTopbar({
   lastSyncedAt,
   isLoading,
   onRefresh,
+  onOpenNav,
   address,
 }: {
   search: string;
@@ -25,13 +27,25 @@ export default function InboxTopbar({
   lastSyncedAt: Date | null;
   isLoading: boolean;
   onRefresh: () => void;
+  onOpenNav: () => void;
   address: string;
 }) {
   const { signOut } = useWalletAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [displayName] = useDisplayName(address);
+  const avatarLetter = displayName
+    ? displayName.slice(0, 1).toUpperCase()
+    : address.slice(2, 4).toUpperCase();
 
   return (
-    <header className="h-16 shrink-0 border-b border-neutral-200 bg-white flex items-center gap-4 px-6">
+    <header className="h-16 shrink-0 border-b border-neutral-200 bg-white flex items-center gap-2 sm:gap-4 px-4 sm:px-6">
+      <button
+        onClick={onOpenNav}
+        title="Open folders"
+        className="md:hidden p-2 -ml-2 rounded-lg text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-colors shrink-0"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
       <input
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
@@ -41,7 +55,7 @@ export default function InboxTopbar({
 
       <div className="flex-1" />
 
-      <span className="text-xs text-green-700 font-geist">
+      <span className="hidden sm:inline text-xs text-green-700 font-geist">
         {isLoading ? "Syncing..." : `Synced ${timeAgo(lastSyncedAt)}`}
       </span>
       <button
@@ -58,11 +72,11 @@ export default function InboxTopbar({
           className="flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-full hover:bg-neutral-100 transition-colors"
         >
           <span className="h-7 w-7 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-xs font-semibold text-blue-600 font-geist">
-            {address.slice(2, 4).toUpperCase()}
+            {avatarLetter}
           </span>
           <span className="text-left">
             <span className="block text-xs font-medium text-neutral-900 font-geist leading-tight">
-              {address.slice(0, 6)}...{address.slice(-4)}
+              {displayName || `${address.slice(0, 6)}...${address.slice(-4)}`}
             </span>
             <span className="block text-[10px] text-neutral-400 font-geist leading-tight">
               Robinhood Chain
