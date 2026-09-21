@@ -2,11 +2,16 @@ import { createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
-// NOTE: Robinhood Chain's public chain ID / RPC endpoint isn't published anywhere
-// verifiable yet, so wiring it in here would mean guessing values into a config
-// people will actually connect wallets to — worse than leaving it out. Swap the
-// `mainnet` entry below for the real chain definition once you have it from
-// Robinhood's own docs, and the rest of the auth flow (connect + sign) needs no changes.
+// Robinhood Chain's public chain ID / RPC endpoint STILL isn't verifiably
+// published anywhere. A WebSearch pass turned up a plausible-looking chain ID
+// (4663) and RPC URL, but a direct DNS check showed both
+// rpc.mainnet.chain.robinhood.com and docs.robinhood.com resolving to
+// internetpositif.id — Indonesia's ISP-level redirect for domains that don't
+// actually exist. That data was very likely search-engine hallucination, not
+// real, so it was deliberately NOT wired in here. Get the real chain
+// definition from Robinhood's own docs (verified by someone who can actually
+// load the page) before touching this — the rest of the auth flow (connect +
+// sign) needs no changes once you do.
 export const wagmiConfig = createConfig({
   chains: [mainnet],
   connectors: [injected()],
