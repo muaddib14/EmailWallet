@@ -1,22 +1,45 @@
 import { createConfig, http } from "wagmi";
-import { mainnet } from "wagmi/chains";
+import { defineChain } from "viem";
 import { injected } from "wagmi/connectors";
 
-// Robinhood Chain's public chain ID / RPC endpoint STILL isn't verifiably
-// published anywhere. A WebSearch pass turned up a plausible-looking chain ID
-// (4663) and RPC URL, but a direct DNS check showed both
-// rpc.mainnet.chain.robinhood.com and docs.robinhood.com resolving to
-// internetpositif.id — Indonesia's ISP-level redirect for domains that don't
-// actually exist. That data was very likely search-engine hallucination, not
-// real, so it was deliberately NOT wired in here. Get the real chain
-// definition from Robinhood's own docs (verified by someone who can actually
-// load the page) before touching this — the rest of the auth flow (connect +
-// sign) needs no changes once you do.
+// Verified against an archived snapshot of docs.robinhood.com/chain/connecting
+// (web.archive.org, captured 2026-09-13) — the live domain resolves through
+// Indonesia's ISP-level DNS filter (internetpositif.id) from this sandbox's
+// network, which made an earlier attempt look like the data was fabricated.
+// It wasn't; the archived page confirms these values directly from
+// Robinhood's own docs table. Re-confirm from the live site if you're ever
+// unsure — this sandbox's network just can't reach it.
+export const robinhoodChain = defineChain({
+  id: 4663,
+  name: "Robinhood Chain",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.mainnet.chain.robinhood.com"] },
+  },
+  blockExplorers: {
+    default: { name: "Blockscout", url: "https://robinhoodchain.blockscout.com" },
+  },
+});
+
+export const robinhoodChainTestnet = defineChain({
+  id: 46630,
+  name: "Robinhood Chain Testnet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.testnet.chain.robinhood.com"] },
+  },
+  blockExplorers: {
+    default: { name: "Blockscout", url: "https://explorer.testnet.chain.robinhood.com" },
+  },
+  testnet: true,
+});
+
 export const wagmiConfig = createConfig({
-  chains: [mainnet],
+  chains: [robinhoodChain, robinhoodChainTestnet],
   connectors: [injected()],
   transports: {
-    [mainnet.id]: http(),
+    [robinhoodChain.id]: http(),
+    [robinhoodChainTestnet.id]: http(),
   },
   ssr: true,
 });
