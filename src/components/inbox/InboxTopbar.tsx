@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, RefreshCw, LogOut } from "lucide-react";
+import { Check, Copy, Menu, RefreshCw, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { useDisplayName } from "@/lib/displayName";
+import { toast } from "@/components/Toast";
 
 function timeAgo(date: Date | null) {
   if (!date) return "never";
@@ -20,6 +21,7 @@ export default function InboxTopbar({
   isLoading,
   onRefresh,
   onOpenNav,
+  onOpenSettings,
   address,
 }: {
   search: string;
@@ -28,10 +30,12 @@ export default function InboxTopbar({
   isLoading: boolean;
   onRefresh: () => void;
   onOpenNav: () => void;
+  onOpenSettings: () => void;
   address: string;
 }) {
   const { signOut } = useWalletAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [displayName] = useDisplayName(address);
   const avatarLetter = displayName
     ? displayName.slice(0, 1).toUpperCase()
@@ -85,10 +89,36 @@ export default function InboxTopbar({
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-neutral-200 bg-white shadow-xl overflow-hidden z-20">
+          <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border border-neutral-200 bg-white shadow-xl overflow-hidden z-20 p-1">
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onOpenSettings();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 transition-colors font-geist"
+            >
+              <SettingsIcon className="w-4 h-4" />
+              Settings
+            </button>
+            <button
+              onClick={() => {
+                void navigator.clipboard?.writeText(address).then(
+                  () => {
+                    setCopied(true);
+                    toast("Address copied");
+                    setTimeout(() => setCopied(false), 1500);
+                  },
+                  () => toast("Couldn't copy the address", "error")
+                );
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 transition-colors font-geist"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+              {copied ? "Copied!" : "Copy address"}
+            </button>
             <button
               onClick={signOut}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 transition-colors font-geist"
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 transition-colors font-geist"
             >
               <LogOut className="w-4 h-4" />
               Disconnect

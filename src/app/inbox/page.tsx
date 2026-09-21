@@ -244,6 +244,7 @@ function InboxApp({ myAddress }: { myAddress: string }) {
           isLoading={isLoading}
           onRefresh={() => void refresh()}
           onOpenNav={() => setNavOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
           address={myAddress}
         />
 
@@ -302,6 +303,7 @@ function InboxApp({ myAddress }: { myAddress: string }) {
               onSelect={handleSelectThread}
               onToggleStar={(id, next) => void setMessageFlags(id, { isStarred: next })}
               onBulk={handleBulk}
+              onCompose={() => setCompose({})}
               myAddress={myAddress}
             />
           )}

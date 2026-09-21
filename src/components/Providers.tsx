@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
 import { WalletAuthProvider } from "@/lib/WalletAuthProvider";
-import AuthErrorToast from "@/components/AuthErrorToast";
 import ToastHost from "@/components/Toast";
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -16,7 +15,6 @@ export default function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <WalletAuthProvider>
           {children}
-          <AuthErrorToast />
           <ToastHost />
         </WalletAuthProvider>
       </QueryClientProvider>

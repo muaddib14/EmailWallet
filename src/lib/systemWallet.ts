@@ -60,8 +60,8 @@ const WELCOME_MESSAGES = [
     body: "Every message you send is signed with your wallet and encrypted in your browser before it leaves. Star, archive, and trash are private to you too — the other side of a conversation never sees your organizing. Nothing here depends on a password, because there isn't one.",
   },
   {
-    subject: "Naming is coming",
-    body: "Right now people have to send mail to your full 0x address. A short, human-readable name for your wallet is on the way — we'll let you know the moment it's ready to claim.",
+    subject: "Threads, receipts & testnet payments",
+    body: "Replies now group into threads, senders see read receipts, and any thread can carry a testnet payment request — paid straight from your wallet and verified on-chain. Watch for the green checks and the Request button inside a conversation.",
   },
 ];
 

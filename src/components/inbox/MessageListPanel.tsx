@@ -39,6 +39,7 @@ export default function MessageListPanel({
   onSelect,
   onToggleStar,
   onBulk,
+  onCompose,
   myAddress,
 }: {
   folder: Folder;
@@ -47,6 +48,7 @@ export default function MessageListPanel({
   onSelect: (key: string) => void;
   onToggleStar: (id: string, next: boolean) => void;
   onBulk: (keys: string[], action: BulkAction) => void;
+  onCompose: () => void;
   myAddress: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -167,6 +169,14 @@ export default function MessageListPanel({
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? "Copied!" : "Copy my address"}
+            </button>
+          )}
+          {folder === "sent" && (
+            <button
+              onClick={onCompose}
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-xs font-medium font-geist text-white hover:bg-green-700 transition-colors"
+            >
+              Write your first mail
             </button>
           )}
         </div>

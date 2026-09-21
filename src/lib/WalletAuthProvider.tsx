@@ -23,13 +23,10 @@ export type AuthStep = "disconnected" | "connecting" | "signing" | "ready";
 export type WalletAuthValue = {
   address: `0x${string}` | undefined;
   step: AuthStep;
-  error: string | null;
   isBusy: boolean;
   /** Pass an explicit connector from the picker (EIP-6963 entry). Falls back to the first injected connector when omitted. */
   connectAndSign: (connector?: Connector) => Promise<void>;
   signOut: () => void;
-  /** Dismiss the current auth error (used by the global error toast). */
-  clearError: () => void;
   isAuthenticated: boolean;
   /** NaCl box keypair derived from the encryption signature. Secret key never leaves the browser. */
   keyPair: BoxKeyPair | null;
@@ -86,7 +83,6 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   const [encryptionSignature, setEncryptionSignature] = useState<string | null>(null);
   const [keyPair, setKeyPair] = useState<BoxKeyPair | null>(null);
   const [isSigning, setIsSigning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const restoreAttempted = useRef(false);
 
   // Answer auth requests from sibling tabs (e.g. a proof link opened in a
@@ -148,7 +144,6 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
   const isBusy = isConnecting || isSigning;
 
   const connectAndSign = useCallback(async (picked?: Connector) => {
-    setError(null);
     setIsSigning(true);
     try {
       let currentAddress = address;
@@ -173,7 +168,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
           connectors.find((c) => c.type === "injected") ??
           connectors[0];
         if (!target) {
-          setError("No wallet found. Install MetaMask, Rabby, or another EVM wallet.");
+          toast("No wallet found. Install MetaMask, Rabby, or another EVM wallet.", "error");
           return;
         }
         const result = await connectAsync({ connector: target });
@@ -190,7 +185,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (!currentAddress) {
-        setError("No account returned by wallet.");
+        toast("No account returned by wallet.", "error");
         return;
       }
 
@@ -237,7 +232,7 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
       });
     } catch (err) {
       console.error("[WalletAuthProvider] connectAndSign failed:", err);
-      setError(friendlyAuthError(err));
+      toast(friendlyAuthError(err), "error");
     } finally {
       setIsSigning(false);
     }
@@ -247,23 +242,18 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     setSessionSignature(null);
     setEncryptionSignature(null);
     setKeyPair(null);
-    setError(null);
     clearAuthCache();
     restoreAttempted.current = false;
     disconnect();
     void fetch("/api/session", { method: "DELETE" });
   }, [disconnect]);
 
-  const clearError = useCallback(() => setError(null), []);
-
   const value: WalletAuthValue = {
     address,
     step,
-    error,
     isBusy,
     connectAndSign,
     signOut,
-    clearError,
     isAuthenticated: step === "ready",
     keyPair,
     connectors,

@@ -141,10 +141,11 @@ export default function ComposeModal({
     setError(null);
     try {
       const recipient = await resolveRecipient(aliasToAddress(to) ?? to);
+      const finalSubject = subject.trim() || "(no subject)";
 
-      const subjectCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, subject);
+      const subjectCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, finalSubject);
       const bodyCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, body);
-      const messageHash = hashPlaintext(subject, body);
+      const messageHash = hashPlaintext(finalSubject, body);
       const senderSignature = await signMessageAsync({ message: { raw: messageHash } });
 
       const res = await fetch("/api/messages", {
@@ -339,7 +340,7 @@ export default function ComposeModal({
                 id="composeSubject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                required
+                placeholder="Subject (optional)"
                 className="flex-1 min-w-0 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 outline-none"
               />
             </div>

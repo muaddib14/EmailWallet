@@ -107,21 +107,21 @@ export function groupThreads(messages: DecryptedMessage[]): Thread[] {
   return threads;
 }
 
-const publicKeyCache = new Map<string, string | null>();
+const publicKeyCache = new Map<string, string>();
 
 async function getPublicKey(address: string): Promise<string | null> {
   if (publicKeyCache.has(address)) return publicKeyCache.get(address) ?? null;
   try {
     const res = await fetch(`/api/wallets/${address}`);
     if (!res.ok) {
-      publicKeyCache.set(address, null);
+      // Deliberately NOT cached: the wallet may publish its key minutes
+      // later, and a cached null would fail every compose until a refresh.
       return null;
     }
     const data = await res.json();
-    publicKeyCache.set(address, data.encryptionPublicKey);
-    return data.encryptionPublicKey;
+    if (data.encryptionPublicKey) publicKeyCache.set(address, data.encryptionPublicKey);
+    return data.encryptionPublicKey ?? null;
   } catch {
-    publicKeyCache.set(address, null);
     return null;
   }
 }
