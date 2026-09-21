@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatEther } from "viem";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { useInboxMessages, groupThreads, threadKeyOf, type DecryptedMessage } from "@/lib/useInboxMessages";
 import { useDrafts, type Draft } from "@/lib/useDrafts";
@@ -63,6 +64,23 @@ type ComposeState = {
 
 type PaymentRequestState = { to: string; threadId: string };
 
+// Pure helper so memos below stay lint-honest: localStorage isn't reactive,
+// so the alias-change generation (tick) is threaded through as data and
+// returned alongside it.
+function aliasDataFor(all: DecryptedMessage[] | null, tick: number) {
+  const saved = listContacts();
+  const aliasOf = new Map(saved.map((c) => [c.address.toLowerCase(), c.name]));
+  const seen = new Set(saved.map((c) => c.address.toLowerCase()));
+  const contacts: ComposeContact[] = saved.map((c) => ({ ...c }));
+  for (const m of all ?? []) {
+    const lower = m.counterparty.toLowerCase();
+    if (seen.has(lower)) continue;
+    seen.add(lower);
+    contacts.push({ address: m.counterparty, name: aliasOf.get(lower) ?? "", recent: true });
+  }
+  return { tick, contacts, aliasOf };
+}
+
 function InboxApp({ myAddress }: { myAddress: string }) {
   const { messages, error, isLoading, lastSyncedAt, refresh, setMessageFlags, purgeMessage } =
     useInboxMessages(myAddress);
@@ -75,6 +93,27 @@ function InboxApp({ myAddress }: { myAddress: string }) {
   const [requesting, setRequesting] = useState<PaymentRequestState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  // Bumps whenever a local alias is saved (any tab), so search and
+  // autocomplete see fresh names without waiting for a message sync.
+  const [aliasTick, setAliasTick] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setAliasTick((t) => t + 1);
+    window.addEventListener("walletmail:display-name-changed", bump);
+    window.addEventListener("storage", bump);
+    return () => {
+      window.removeEventListener("walletmail:display-name-changed", bump);
+      window.removeEventListener("storage", bump);
+    };
+  }, []);
+
+  // Saved aliases + recent counterparties in one memo (plus the alias map
+  // for search) — rebuilt when messages arrive or an alias is saved. Declared
+  // before `filtered` because the search predicate reads `aliasOf`.
+  const { contacts, aliasOf } = useMemo(
+    () => aliasDataFor(messages, aliasTick),
+    [messages, aliasTick]
+  );
 
   const filtered = useMemo(() => {
     const all = messages ?? [];
@@ -106,9 +145,10 @@ function InboxApp({ myAddress }: { myAddress: string }) {
       (m) =>
         m.subject.toLowerCase().includes(q) ||
         m.body.toLowerCase().includes(q) ||
-        m.counterparty.toLowerCase().includes(q)
+        m.counterparty.toLowerCase().includes(q) ||
+        (aliasOf.get(m.counterparty.toLowerCase()) ?? "").toLowerCase().includes(q)
     );
-  }, [messages, folder, search]);
+  }, [messages, folder, search, aliasOf]);
 
   const threads = useMemo(() => groupThreads(filtered), [filtered]);
 
@@ -133,21 +173,6 @@ function InboxApp({ myAddress }: { myAddress: string }) {
       drafts: drafts?.length ?? 0,
     };
   }, [messages, drafts]);
-
-  // Saved aliases first, then recent counterparties — feeds To autocomplete.
-  const contacts: ComposeContact[] = useMemo(() => {
-    const saved = listContacts();
-    const aliasOf = new Map(saved.map((c) => [c.address.toLowerCase(), c.name]));
-    const seen = new Set(saved.map((c) => c.address.toLowerCase()));
-    const out: ComposeContact[] = saved.map((c) => ({ ...c }));
-    for (const m of messages ?? []) {
-      const lower = m.counterparty.toLowerCase();
-      if (seen.has(lower)) continue;
-      seen.add(lower);
-      out.push({ address: m.counterparty, name: aliasOf.get(lower) ?? "", recent: true });
-    }
-    return out;
-  }, [messages]);
 
   const selectedThread = threads.find((t) => t.key === selectedKey) ?? null;
 
@@ -284,12 +309,25 @@ function InboxApp({ myAddress }: { myAddress: string }) {
                   threadId: threadKeyOf(msg),
                 })
               }
-              onForward={(msg) =>
-                setCompose({
+              onForward={(msg) => {
+                // Payment requests forward as human prose, never the raw JSON
+                // envelope (which would leak gibberish to the next recipient).
+                const forwardedBody = msg.payment
+                  ? (() => {
+                      let amount = msg.payment!.amountWei;
+                      try {
+                        amount = formatEther(BigInt(msg.payment!.amountWei));
+                      } catch {
+                        // Keep raw wei on malformed data.
+                      }
+                      return `\n\n---------- Forwarded payment request ----------\nAmount: ${amount} ${msg.payment!.token}${msg.payment!.note ? `\nNote: ${msg.payment!.note}` : ""}`;
+                    })()
+                  : msg.body;
+                return setCompose({
                   subject: msg.subject.startsWith("Fwd:") ? msg.subject : `Fwd: ${msg.subject}`,
-                  body: `\n\n---------- Forwarded message ----------\nFrom: ${msg.direction === "out" ? myAddress : msg.counterparty}\nDate: ${new Date(msg.createdAt).toLocaleString()}\nSubject: ${msg.subject}\n\n${msg.body}`,
-                })
-              }
+                  body: `\n\n---------- Forwarded message ----------\nFrom: ${msg.direction === "out" ? myAddress : msg.counterparty}\nDate: ${new Date(msg.createdAt).toLocaleString()}\nSubject: ${msg.subject}\n\n${forwardedBody}`,
+                });
+              }}
               onRequest={(msg) =>
                 setRequesting({ to: msg.counterparty, threadId: threadKeyOf(msg) })
               }
