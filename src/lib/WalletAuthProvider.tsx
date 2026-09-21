@@ -246,7 +246,12 @@ export function WalletAuthProvider({ children }: { children: ReactNode }) {
     restoreAttempted.current = false;
     disconnect();
     void fetch("/api/session", { method: "DELETE" });
-  }, [disconnect]);
+    // Explicit logout (or expired session): go home now. The inbox gate's
+    // tolerance timer is only for restores that might still land — after a
+    // deliberate disconnect there is nothing to wait for, and waiting shows
+    // a blank white page.
+    router.replace("/");
+  }, [disconnect, router]);
 
   const value: WalletAuthValue = {
     address,
