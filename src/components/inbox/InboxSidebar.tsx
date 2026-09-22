@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { Folder } from "./types";
 import { FOLDER_LABELS } from "./types";
+import { ENABLE_REQUEST } from "@/lib/features";
 import { useDisplayName } from "@/lib/displayName";
 import { LABEL_STYLES, type Label } from "@/lib/useLabels";
 
@@ -126,16 +127,18 @@ export default function InboxSidebar({
           <PenSquare className="w-4 h-4 shrink-0" />
           {!collapsed && "New mail"}
         </button>
-        <button
-          onClick={onRequestNew}
-          title="Request payment (testnet)"
-          className={`mt-2 inline-flex items-center gap-2 rounded-full bg-white border border-neutral-200 text-neutral-700 text-sm font-medium font-geist h-10 hover:bg-neutral-50 hover:border-neutral-300 transition-colors ${
-            collapsed ? "w-10 justify-center px-0" : "w-full justify-center"
-          }`}
-        >
-          <Banknote className="w-4 h-4 shrink-0" />
-          {!collapsed && "Request"}
-        </button>
+        {ENABLE_REQUEST && (
+          <button
+            onClick={onRequestNew}
+            title="Request payment (testnet)"
+            className={`mt-2 inline-flex items-center gap-2 rounded-full bg-white border border-neutral-200 text-neutral-700 text-sm font-medium font-geist h-10 hover:bg-neutral-50 hover:border-neutral-300 transition-colors ${
+              collapsed ? "w-10 justify-center px-0" : "w-full justify-center"
+            }`}
+          >
+            <Banknote className="w-4 h-4 shrink-0" />
+            {!collapsed && "Request"}
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">

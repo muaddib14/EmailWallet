@@ -17,6 +17,7 @@ import {
 import type { DecryptedMessage, Thread } from "@/lib/useInboxMessages";
 import type { LabelColor } from "@/lib/db/queries";
 import type { Label } from "@/lib/useLabels";
+import { ENABLE_AI, ENABLE_REQUEST } from "@/lib/features";
 import { useDisplayName } from "@/lib/displayName";
 import { ContactAvatar, ContactLabel, shortAddress } from "./ContactName";
 import { ReceiptLabel } from "./ReadReceipt";
@@ -204,13 +205,15 @@ export default function MessageDetailPanel({
         <div className="flex items-center gap-1 shrink-0">
           {trashed ? (
             <>
-              <button
-                onClick={onSummarize}
-                className="p-2 rounded-lg text-violet-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
-                title="Summarize this thread (AI)"
-              >
-                <Sparkles className="w-4 h-4" />
-              </button>
+              {ENABLE_AI && (
+                <button
+                  onClick={onSummarize}
+                  className="p-2 rounded-lg text-violet-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                  title="Summarize this thread (AI)"
+                >
+                  <Sparkles className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={copyProofLink}
                 className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
@@ -235,13 +238,15 @@ export default function MessageDetailPanel({
             </>
           ) : (
             <>
-              <button
-                onClick={onSummarize}
-                className="p-2 rounded-lg text-violet-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
-                title="Summarize this thread (AI)"
-              >
-                <Sparkles className="w-4 h-4" />
-              </button>
+              {ENABLE_AI && (
+                <button
+                  onClick={onSummarize}
+                  className="p-2 rounded-lg text-violet-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                  title="Summarize this thread (AI)"
+                >
+                  <Sparkles className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={copyProofLink}
                 className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
@@ -351,7 +356,7 @@ export default function MessageDetailPanel({
         </div>
         {!trashed && (
           <div className="flex items-center gap-2">
-            {!latest.isSelfSend && (
+            {ENABLE_REQUEST && !latest.isSelfSend && (
               <button
                 onClick={() => onRequest(latest)}
                 className="inline-flex items-center gap-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-200 rounded-lg px-4 py-2 hover:bg-neutral-50 transition font-geist"

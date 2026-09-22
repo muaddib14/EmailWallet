@@ -4,6 +4,7 @@ import { useState, type RefObject } from "react";
 import { Check, Copy, Menu, RefreshCw, LogOut, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { useDisplayName } from "@/lib/displayName";
+import { ENABLE_AI } from "@/lib/features";
 import { toast } from "@/components/Toast";
 
 function timeAgo(date: Date | null) {
@@ -64,13 +65,15 @@ export default function InboxTopbar({
 
       <div className="flex-1" />
 
-      <button
-        onClick={onOpenAISummary}
-        title="AI inbox summary (BYOK)"
-        className="p-2 rounded-full text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
-      >
-        <Sparkles className="w-4 h-4" />
-      </button>
+      {ENABLE_AI && (
+        <button
+          onClick={onOpenAISummary}
+          title="AI inbox summary (BYOK)"
+          className="p-2 rounded-full text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+        >
+          <Sparkles className="w-4 h-4" />
+        </button>
+      )}
 
       <span className="hidden sm:inline text-xs text-green-700 font-geist">
         {isLoading ? "Syncing..." : `Synced ${timeAgo(lastSyncedAt)}`}
