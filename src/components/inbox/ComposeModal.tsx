@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Minus, Maximize2, Minimize2, X, Trash2, Check } from "lucide-react";
+import { Minus, Maximize2, Minimize2, Paperclip, X, Trash2, Check } from "lucide-react";
 import { useSignMessage } from "wagmi";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
 import { encryptFor, hashPlaintext } from "@/lib/crypto";
+import { encryptAttachment, u8ToArrayBuffer } from "@/lib/attachments";
+import { toast } from "@/components/Toast";
 import type { Contact } from "@/lib/displayName";
 import { ContactAvatar } from "@/components/inbox/ContactName";
 
 type Status = "idle" | "sending" | "error";
+
+const MAX_FILES = 5;
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 export type ComposeContact = Contact & { recent?: boolean };
 
@@ -65,6 +70,9 @@ export default function ComposeModal({
   const [sent, setSent] = useState(false);
   const [toFocused, setToFocused] = useState(false);
   const toBlurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [attachOn, setAttachOn] = useState(true);
 
   type ToState =
     | { status: "idle" }
@@ -74,7 +82,33 @@ export default function ComposeModal({
   const [toState, setToState] = useState<ToState>({ status: "idle" });
   const toReq = useRef(0);
 
-  const hasContent = to.trim() || subject.trim() || body.trim();
+  const hasContent = to.trim() || subject.trim() || body.trim() || files.length > 0;
+
+  // Hide the attach button when the server has no object storage configured.
+  // Promise callbacks only — no synchronous setState for the lint rule.
+  useEffect(() => {
+    fetch("/api/attachments")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.configured === false) setAttachOn(false);
+      })
+      .catch(() => {});
+  }, []);
+
+  function pickFiles(list: FileList | null) {
+    if (!list) return;
+    const incoming = [...list];
+    const tooBig = incoming.filter((f) => f.size > MAX_FILE_BYTES);
+    if (tooBig.length > 0) {
+      toast(`"${tooBig[0].name}" is over 5MB — skipped`, "error");
+    }
+    const ok = incoming.filter((f) => f.size > 0 && f.size <= MAX_FILE_BYTES);
+    setFiles((prev) => {
+      const next = [...prev, ...ok].slice(0, MAX_FILES);
+      if (prev.length + ok.length > MAX_FILES) toast(`Max ${MAX_FILES} files per message`, "error");
+      return next;
+    });
+  }
 
   /** A typed alias (e.g. "Mom") resolves locally to its address — instant, no network. */
   function aliasToAddress(raw: string): string | null {
@@ -164,6 +198,46 @@ export default function ComposeModal({
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
         throw new Error(errBody.error ?? "Server rejected the message.");
+      }
+      const { id: sentId } = (await res.json().catch(() => ({}))) as { id?: string };
+
+      // Attachments upload after the message exists (metadata references it).
+      // A failed upload never blocks or unsends the mail — it toasts instead.
+      if (sentId && files.length > 0) {
+        let failed = 0;
+        for (const f of files) {
+          try {
+            const bytes = new Uint8Array(await f.arrayBuffer());
+            const enc = encryptAttachment(bytes, f.name, recipient.encryptionPublicKey, keyPair.secretKey);
+            const form = new FormData();
+            form.set("messageId", sentId);
+            // Exact-copy buffer: narrowing Uint8Array<ArrayBufferLike>
+            // isn't assignable to BlobPart under this tsconfig.
+            form.set(
+              "file",
+              new Blob([u8ToArrayBuffer(enc.cipherBytes)], { type: "application/octet-stream" })
+            );
+            form.set("filenameCt", enc.filenameCt);
+            form.set("filenameNonce", enc.filenameNonce);
+            form.set("wrappedKey", enc.wrappedKey);
+            form.set("wrapNonce", enc.wrapNonce);
+            form.set("mime", f.type || "application/octet-stream");
+            form.set("size", String(f.size));
+            const up = await fetch("/api/attachments", { method: "POST", body: form });
+            if (!up.ok) failed++;
+          } catch (uploadErr) {
+            console.error("[compose] attachment upload failed:", uploadErr);
+            failed++;
+          }
+        }
+        if (failed > 0) {
+          toast(
+            failed === files.length
+              ? "Message sent, but attachments failed to upload"
+              : `Message sent, ${failed} attachment(s) failed to upload`,
+            "error"
+          );
+        }
       }
 
       if (currentDraftId) await onDeleteDraft(currentDraftId);
@@ -356,6 +430,28 @@ export default function ComposeModal({
 
           {error && <p className="px-4 pb-2 text-xs text-red-600 font-geist shrink-0">{error}</p>}
 
+          {files.length > 0 && (
+            <div className="px-4 pb-2 flex flex-wrap gap-1.5 shrink-0">
+              {files.map((f, i) => (
+                <span
+                  key={`${f.name}-${f.size}-${i}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 pl-2.5 pr-1 py-1 text-[11px] font-geist text-neutral-700 max-w-full"
+                >
+                  <Paperclip className="w-3 h-3 text-neutral-400 shrink-0" />
+                  <span className="truncate max-w-40">{f.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                    title="Remove file"
+                    className="p-0.5 rounded text-neutral-400 hover:text-neutral-900 transition-colors shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-100 shrink-0">
             <button
               type="submit"
@@ -364,14 +460,38 @@ export default function ComposeModal({
             >
               {status === "sending" ? "Sending..." : "Send"}
             </button>
-            <button
-              type="button"
-              onClick={() => void handleDiscard()}
-              title="Discard draft"
-              className="p-2 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <span className="flex items-center gap-1">
+              {attachOn && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      pickFiles(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Attach files (up to 5, 5MB each, encrypted)"
+                    className="p-2 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleDiscard()}
+                title="Discard draft"
+                className="p-2 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </span>
           </div>
 
           <p className="px-4 pb-2 text-[10px] text-neutral-300 font-geist shrink-0">

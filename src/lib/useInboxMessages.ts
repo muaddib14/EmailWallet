@@ -23,11 +23,16 @@ export type RawMessage = {
   /** On-chain payment proof for a payment-request message (null when unpaid). */
   paidTxHash: string | null;
   paidAmountWei: string | null;
+  paidTokenAddress: string | null;
 };
 
 export type PaymentRequest = {
+  /** Base-unit amount, decimal string. */
   amountWei: string;
   token: string;
+  /** ERC-20 contract, or null for native. Absent in pre-token envelopes (= native). */
+  tokenAddress: string | null;
+  tokenDecimals: number;
   note: string;
 };
 
@@ -47,19 +52,33 @@ export function parsePaymentRequest(body: string): PaymentRequest | null {
   if (!trimmed.startsWith("{")) return null;
   try {
     const obj: unknown = JSON.parse(trimmed);
-    if (
-      typeof obj !== "object" ||
-      obj === null ||
-      (obj as Record<string, unknown>).kind !== "payment-request" ||
-      typeof (obj as Record<string, unknown>).amountWei !== "string" ||
-      typeof (obj as Record<string, unknown>).token !== "string"
-    ) {
-      return null;
-    }
+    if (typeof obj !== "object" || obj === null) return null;
     const rec = obj as Record<string, unknown>;
+    if (rec.kind !== "payment-request") return null;
+    if (typeof rec.amountWei !== "string") return null;
+    if (typeof rec.token !== "string") return null;
+    const tokenAddress =
+      rec.tokenAddress === undefined || rec.tokenAddress === null
+        ? null
+        : typeof rec.tokenAddress === "string"
+          ? rec.tokenAddress
+          : undefined;
+    if (tokenAddress === undefined) return null;
+    const tokenDecimals =
+      rec.tokenDecimals === undefined || rec.tokenDecimals === null
+        ? 18
+        : typeof rec.tokenDecimals === "number" &&
+            Number.isInteger(rec.tokenDecimals) &&
+            rec.tokenDecimals >= 0 &&
+            rec.tokenDecimals <= 36
+          ? rec.tokenDecimals
+          : undefined;
+    if (tokenDecimals === undefined) return null;
     return {
-      amountWei: rec.amountWei as string,
-      token: rec.token as string,
+      amountWei: rec.amountWei,
+      token: rec.token,
+      tokenAddress,
+      tokenDecimals,
       note: typeof rec.note === "string" ? rec.note : "",
     };
   } catch {

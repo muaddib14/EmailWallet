@@ -1,24 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useChainId, useSendTransaction, useSwitchChain } from "wagmi";
-import { formatEther } from "viem";
+import { useChainId, useSendTransaction, useSwitchChain, useWriteContract } from "wagmi";
 import { ArrowUpRight, Check, LoaderCircle } from "lucide-react";
 import type { DecryptedMessage } from "@/lib/useInboxMessages";
+import { ERC20_ABI, formatTokenAmount } from "@/lib/tokens";
 import { robinhoodChainTestnet } from "@/lib/wagmi";
 import { toast } from "@/components/Toast";
 
 type PayState = "idle" | "switching" | "sending" | "verifying" | "error";
 
 const EXPLORER = "https://explorer.testnet.chain.robinhood.com";
-
-function formatAmount(wei: string, token: string) {
-  try {
-    return `${formatEther(BigInt(wei))} ${token}`;
-  } catch {
-    return `${wei} ${token}`;
-  }
-}
 
 function parsePositiveWei(value: string | null | undefined): bigint | null {
   if (!value) return null;
@@ -33,7 +25,8 @@ function parsePositiveWei(value: string | null | undefined): bigint | null {
 /**
  * Renders a payment-request message: amount card with Pay (payer side),
  * waiting/paid states (requester side), and the on-chain receipt link.
- * Testnet only — no real money moves.
+ * Native tETH and any ERC-20 share this card — the envelope carries the
+ * token contract + decimals. Testnet only — no real money moves.
  */
 export function PaymentCard({
   message,
@@ -46,16 +39,26 @@ export function PaymentCard({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
+  const { writeContractAsync } = useWriteContract();
   const [state, setState] = useState<PayState>("idle");
   const [error, setError] = useState<string | null>(null);
 
   const expected = parsePositiveWei(payment.amountWei);
   if (expected === null) return null;
 
+  const showAmount = (wei: string) => formatTokenAmount(wei, payment.tokenDecimals, payment.token);
+
   const paidValue = parsePositiveWei(message.paidAmountWei);
-  const paid = message.paidTxHash !== null && paidValue !== null;
-  const full = paidValue !== null && paidValue >= expected;
+  const hasReceipt = message.paidTxHash !== null && paidValue !== null;
+  // The receipt must also be for the REQUESTED token, not just any token.
+  const tokenOk = !hasReceipt
+    ? true
+    : payment.tokenAddress === null
+      ? message.paidTokenAddress === null
+      : (message.paidTokenAddress ?? "").toLowerCase() === payment.tokenAddress.toLowerCase();
+  const full = hasReceipt && tokenOk && paidValue! >= expected;
   const iAmPayer = message.direction === "in";
+  const isErc20 = payment.tokenAddress !== null;
 
   async function handlePay(expectedAmount: bigint, paidSoFar: bigint | null) {
     setError(null);
@@ -67,29 +70,46 @@ export function PaymentCard({
         await switchChainAsync({ chainId: robinhoodChainTestnet.id });
       }
       setState("sending");
-      const hash = await sendTransactionAsync({
-        to: message.counterparty as `0x${string}`,
-        value: remainder,
-        chainId: robinhoodChainTestnet.id,
-      });
+      let hash: string;
+      if (isErc20) {
+        hash = await writeContractAsync({
+          address: payment.tokenAddress! as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: "transfer",
+          args: [message.counterparty as `0x${string}`, remainder],
+          chainId: robinhoodChainTestnet.id,
+        });
+      } else {
+        hash = await sendTransactionAsync({
+          to: message.counterparty as `0x${string}`,
+          value: remainder,
+          chainId: robinhoodChainTestnet.id,
+        });
+      }
       setState("verifying");
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId: message.id, txHash: hash }),
+        body: JSON.stringify({
+          messageId: message.id,
+          txHash: hash,
+          ...(isErc20 ? { tokenAddress: payment.tokenAddress } : {}),
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Payment verification failed.");
       }
       setState("idle");
-      toast(full ? "Payment recorded" : "Payment sent — verifying on-chain");
+      toast("Payment sent — verifying on-chain");
       onPaid();
     } catch (err) {
       setState("error");
       const msg = err instanceof Error ? err.message : "Payment failed.";
       // Wallet rejections are routine — keep them short, details go to console.
-      const friendly = /reject|denied|cancel/i.test(msg) ? "Payment cancelled in wallet." : msg;
+      const friendly = /reject|denied|cancel|user rejected/i.test(msg)
+        ? "Payment cancelled in wallet."
+        : msg;
       setError(friendly);
       console.error("[PaymentCard] pay failed:", err);
     }
@@ -102,7 +122,7 @@ export function PaymentCard({
           Payment request · Testnet
         </p>
         <p className="mt-1 text-2xl font-geist font-semibold tracking-tight text-neutral-900">
-          {formatAmount(payment.amountWei, payment.token)}
+          {showAmount(payment.amountWei)}
         </p>
         {payment.note && (
           <p className="mt-1 text-sm text-neutral-600 font-geist whitespace-pre-wrap">
@@ -116,10 +136,14 @@ export function PaymentCard({
               <Check className="w-3.5 h-3.5" />
               Paid — verified on-chain
             </span>
-          ) : paid ? (
+          ) : hasReceipt && !tokenOk ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-geist font-medium text-amber-700">
-              Partially paid ({formatAmount(paidValue!.toString(), payment.token)} of{" "}
-              {formatAmount(payment.amountWei, payment.token)})
+              Paid in a different token — still waiting for {showAmount(payment.amountWei)}
+            </span>
+          ) : hasReceipt ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs font-geist font-medium text-amber-700">
+              Partially paid ({showAmount(paidValue!.toString())} of{" "}
+              {showAmount(payment.amountWei)})
             </span>
           ) : iAmPayer ? (
             <button
@@ -136,7 +160,7 @@ export function PaymentCard({
                   ? "Confirm in wallet…"
                   : state === "verifying"
                     ? "Verifying on-chain…"
-                    : `Pay ${formatAmount(payment.amountWei, payment.token)}`}
+                    : `Pay ${showAmount(payment.amountWei)}`}
             </button>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 border border-neutral-200 px-3 py-1.5 text-xs font-geist font-medium text-neutral-500">

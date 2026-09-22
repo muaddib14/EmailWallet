@@ -2,7 +2,7 @@ import { randomUUID, randomBytes } from "crypto";
 import { and, desc, eq, lt, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./client";
-import { drafts, loginNonces, messageFlags, messages, names, paymentReceipts, sessions, wallets } from "./schema";
+import { drafts, loginNonces, messageFlags, messageLabels, messages, labels, paymentReceipts, sessions, wallets, attachments } from "./schema";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const NONCE_TTL_MS = 5 * 60 * 1000; // signing prompt should take seconds, not minutes
@@ -63,16 +63,6 @@ export async function deleteSession(sessionId: string) {
   await db.delete(sessions).where(eq(sessions.id, sessionId));
 }
 
-export async function resolveName(name: string) {
-  const [row] = await db.select().from(names).where(eq(names.id, name)).limit(1);
-  if (!row) return null;
-  const [wallet] = await db
-    .select()
-    .from(wallets)
-    .where(eq(wallets.address, row.ownerAddress))
-    .limit(1);
-  return { ...row, encryptionPublicKey: wallet?.encryptionPublicKey ?? null };
-}
 /** Every message this address can currently see, with THEIR OWN flags joined in,
  * plus the OTHER side's read state (null for self-sends) so senders get read
  * receipts without a second query, plus any on-chain payment proof. */
@@ -95,6 +85,7 @@ export async function listMessagesForAddress(address: string) {
       readAt: otherFlags.readAt,
       paidTxHash: paymentReceipts.txHash,
       paidAmountWei: paymentReceipts.amountWei,
+      paidTokenAddress: paymentReceipts.tokenAddress,
     })
     .from(messageFlags)
     .innerJoin(messages, eq(messages.id, messageFlags.messageId))
@@ -207,12 +198,136 @@ export async function isTxHashUsed(txHash: string) {
   return !!row;
 }
 
-export async function insertPaymentReceipt(messageId: string, txHash: string, amountWei: string) {
+export async function insertPaymentReceipt(
+  messageId: string,
+  txHash: string,
+  amountBaseUnits: string,
+  tokenAddress: string | null
+) {
   const id = randomUUID();
-  await db
-    .insert(paymentReceipts)
-    .values({ id, messageId, txHash: txHash.toLowerCase(), amountWei });
+  await db.insert(paymentReceipts).values({
+    id,
+    messageId,
+    txHash: txHash.toLowerCase(),
+    amountWei: amountBaseUnits,
+    tokenAddress: tokenAddress ? tokenAddress.toLowerCase() : null,
+  });
   return id;
+}
+
+// --- Labels ---
+
+export const LABEL_COLORS = [
+  "green",
+  "blue",
+  "amber",
+  "red",
+  "violet",
+  "neutral",
+] as const;
+
+export type LabelColor = (typeof LABEL_COLORS)[number];
+
+export function isLabelColor(value: unknown): value is LabelColor {
+  return typeof value === "string" && (LABEL_COLORS as readonly string[]).includes(value);
+}
+
+export async function listLabelsForAddress(address: string) {
+  return db.select().from(labels).where(eq(labels.ownerAddress, address)).orderBy(labels.createdAt);
+}
+
+export async function listMessageLabelsForAddress(address: string) {
+  return db
+    .select({ messageId: messageLabels.messageId, labelId: messageLabels.labelId })
+    .from(messageLabels)
+    .where(eq(messageLabels.address, address));
+}
+
+export async function createLabel(address: string, name: string, color: LabelColor) {
+  const clean = name.trim().slice(0, 24);
+  if (!clean) throw new Error("Label name is required.");
+  await upsertWallet(address);
+  const id = randomUUID();
+  try {
+    await db.insert(labels).values({ id, ownerAddress: address, name: clean, color });
+  } catch {
+    throw new Error("You already have a label with that name.");
+  }
+  return id;
+}
+
+export async function deleteLabel(id: string, address: string) {
+  await db.delete(labels).where(and(eq(labels.id, id), eq(labels.ownerAddress, address)));
+}
+
+/** Replaces one viewer's label set on a message (message rows untouched). */
+export async function setMessageLabels(messageId: string, address: string, labelIds: string[]) {
+  // Only the viewer's own labels can be attached — no borrowing someone
+  // else's label ids to smuggle rows in.
+  const owned =
+    labelIds.length === 0
+      ? []
+      : await db
+          .select({ id: labels.id })
+          .from(labels)
+          .where(and(eq(labels.ownerAddress, address)));
+  const ownedIds = new Set(owned.map((l) => l.id));
+  const valid = [...new Set(labelIds)].filter((lid) => ownedIds.has(lid));
+
+  await db
+    .delete(messageLabels)
+    .where(and(eq(messageLabels.messageId, messageId), eq(messageLabels.address, address)));
+  if (valid.length > 0) {
+    await db
+      .insert(messageLabels)
+      .values(valid.map((labelId) => ({ messageId, address, labelId })));
+  }
+}
+
+// --- Attachments ---
+
+export type NewAttachmentInput = {
+  messageId: string;
+  blobUrl: string;
+  sizeBytes: string;
+  mime: string;
+  filenameCt: string;
+  filenameNonce: string;
+  wrappedKey: string;
+  wrapNonce: string;
+};
+
+export async function insertAttachment(input: NewAttachmentInput) {
+  const id = randomUUID();
+  await db.insert(attachments).values({ id, ...input });
+  return id;
+}
+
+/** Metadata for messages this viewer can see (flag-row scoped, like everything else). */
+export async function listAttachmentsForMessages(messageIds: string[], address: string) {
+  if (messageIds.length === 0) return [];
+  const rows = await db
+    .select({
+      id: attachments.id,
+      messageId: attachments.messageId,
+      blobUrl: attachments.blobUrl,
+      sizeBytes: attachments.sizeBytes,
+      mime: attachments.mime,
+      filenameCt: attachments.filenameCt,
+      filenameNonce: attachments.filenameNonce,
+      wrappedKey: attachments.wrappedKey,
+      wrapNonce: attachments.wrapNonce,
+    })
+    .from(attachments)
+    .innerJoin(
+      messageFlags,
+      and(
+        eq(messageFlags.messageId, attachments.messageId),
+        eq(messageFlags.address, address)
+      )
+    );
+  const wanted = new Set(messageIds);
+  return rows.filter((r) => wanted.has(r.messageId));
 }
 
 // --- Drafts ---

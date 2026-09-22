@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatEther } from "viem";
 import { useWalletAuth } from "@/lib/useWalletAuth";
+import { formatTokenAmount } from "@/lib/tokens";
 import { useInboxMessages, groupThreads, threadKeyOf, type DecryptedMessage } from "@/lib/useInboxMessages";
 import { useDrafts, type Draft } from "@/lib/useDrafts";
+import { useLabels } from "@/lib/useLabels";
 import { listContacts } from "@/lib/displayName";
 import { HeroConnectButton } from "@/components/ConnectWalletButton";
 import InboxSidebar from "@/components/inbox/InboxSidebar";
@@ -17,6 +18,7 @@ import ComposeModal, { type ComposeContact } from "@/components/inbox/ComposeMod
 import RequestPaymentModal from "@/components/inbox/RequestPaymentModal";
 import { toast } from "@/components/Toast";
 import SettingsModal from "@/components/inbox/SettingsModal";
+import AISummaryModal from "@/components/inbox/AISummaryModal";
 import type { Folder } from "@/components/inbox/types";
 
 export default function InboxPage() {
@@ -62,7 +64,7 @@ type ComposeState = {
   threadId?: string | null;
 };
 
-type PaymentRequestState = { to: string; threadId: string };
+type PaymentRequestState = { to?: string; threadId?: string | null };
 
 // Pure helper so memos below stay lint-honest: localStorage isn't reactive,
 // so the alias-change generation (tick) is threaded through as data and
@@ -85,14 +87,26 @@ function InboxApp({ myAddress }: { myAddress: string }) {
   const { messages, error, isLoading, lastSyncedAt, refresh, setMessageFlags, purgeMessage } =
     useInboxMessages(myAddress);
   const { drafts, saveDraft, deleteDraft } = useDrafts();
+  const {
+    labels: labelDefs,
+    assigned: labelMap,
+    refresh: refreshLabels,
+    create: createLabel,
+    remove: deleteLabel,
+    setForMessage: setLabelsForMessage,
+  } = useLabels();
 
   const [folder, setFolder] = useState<Folder>("inbox");
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [compose, setCompose] = useState<ComposeState | null>(null);
   const [requesting, setRequesting] = useState<PaymentRequestState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
+  const [threadSummaryOpen, setThreadSummaryOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
   // Bumps whenever a local alias is saved (any tab), so search and
   // autocomplete see fresh names without waiting for a message sync.
   const [aliasTick, setAliasTick] = useState(0);
@@ -139,16 +153,20 @@ function InboxApp({ myAddress }: { myAddress: string }) {
         break;
     }
 
-    if (!search.trim()) return byFolder;
+    let out = byFolder;
+    if (labelFilter) {
+      out = out.filter((m) => (labelMap[m.id] ?? []).includes(labelFilter));
+    }
+    if (!search.trim()) return out;
     const q = search.trim().toLowerCase();
-    return byFolder.filter(
+    return out.filter(
       (m) =>
         m.subject.toLowerCase().includes(q) ||
         m.body.toLowerCase().includes(q) ||
         m.counterparty.toLowerCase().includes(q) ||
         (aliasOf.get(m.counterparty.toLowerCase()) ?? "").toLowerCase().includes(q)
     );
-  }, [messages, folder, search, aliasOf]);
+  }, [messages, folder, search, aliasOf, labelFilter, labelMap]);
 
   const threads = useMemo(() => groupThreads(filtered), [filtered]);
 
@@ -174,7 +192,46 @@ function InboxApp({ myAddress }: { myAddress: string }) {
     };
   }, [messages, drafts]);
 
+  const labelCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const m of messages ?? []) {
+      if (m.isDeleted) continue;
+      for (const lid of labelMap[m.id] ?? []) {
+        counts[lid] = (counts[lid] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [messages, labelMap]);
+
+  const labelFilterDef = labelFilter
+    ? (labelDefs ?? []).find((l) => l.id === labelFilter) ?? null
+    : null;
+
+  // Keep label assignments in step with message syncs (both tables are tiny).
+  useEffect(() => {
+    void refreshLabels();
+  }, [messages, refreshLabels]);
+
   const selectedThread = threads.find((t) => t.key === selectedKey) ?? null;
+
+  const unreadInbox = useMemo(
+    () => (messages ?? []).filter((m) => m.direction === "in" && !m.isRead && !m.isArchived && !m.isDeleted),
+    [messages]
+  );
+
+  function openMessageById(id: string) {
+    const all = messages ?? [];
+    const msg = all.find((m) => m.id === id);
+    if (!msg) return;
+    const key = threadKeyOf(msg);
+    setFolder(msg.direction === "in" ? "inbox" : "sent");
+    setSelectedKey(key);
+    for (const m of all) {
+      if (threadKeyOf(m) === key && m.direction === "in" && !m.isRead) {
+        void setMessageFlags(m.id, { isRead: true });
+      }
+    }
+  }
 
   function handleSelectThread(key: string) {
     setSelectedKey(key);
@@ -223,6 +280,90 @@ function InboxApp({ myAddress }: { myAddress: string }) {
     });
   }
 
+  function replyTo(msg: DecryptedMessage) {
+    setCompose({
+      to: msg.counterparty,
+      subject: msg.subject.startsWith("Re:") ? msg.subject : `Re: ${msg.subject}`,
+      threadId: threadKeyOf(msg),
+    });
+  }
+
+  function forwardTo(msg: DecryptedMessage) {
+    // Payment requests forward as human prose, never the raw JSON
+    // envelope (which would leak gibberish to the next recipient).
+    const forwardedBody = msg.payment
+      ? `---------- Forwarded payment request ----------\nAmount: ${formatTokenAmount(msg.payment.amountWei, msg.payment.tokenDecimals, msg.payment.token)}${msg.payment.note ? `\nNote: ${msg.payment.note}` : ""}`
+      : msg.body;
+    setCompose({
+      subject: msg.subject.startsWith("Fwd:") ? msg.subject : `Fwd: ${msg.subject}`,
+      body: `\n\n---------- Forwarded message ----------\nFrom: ${msg.direction === "out" ? myAddress : msg.counterparty}\nDate: ${new Date(msg.createdAt).toLocaleString()}\nSubject: ${msg.subject}\n\n${forwardedBody}`,
+    });
+  }
+
+  function archiveThreadByKey(key: string) {
+    const thread = threads.find((t) => t.key === key);
+    if (!thread) return;
+    for (const m of thread.messages) {
+      if (!m.isArchived) void setMessageFlags(m.id, { isArchived: true });
+    }
+    setSelectedKey(null);
+  }
+
+  // Gmail-style shortcuts. Skipped while typing, while any modal/drawer is
+  // open, or in the drafts list (thread keys don't apply there).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      const typing =
+        !!t &&
+        (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      const modalOpen =
+        compose !== null || settingsOpen || requesting !== null || navOpen || aiSummaryOpen || threadSummaryOpen;
+      if (e.key === "Escape") {
+        if (modalOpen) return; // modals handle their own Escape
+        if (selectedKey) {
+          setSelectedKey(null);
+          return;
+        }
+        (document.activeElement as HTMLElement | null)?.blur?.();
+        return;
+      }
+      if (typing || modalOpen) return;
+      const k = e.key.toLowerCase();
+      if (k === "c") {
+        e.preventDefault();
+        setCompose({});
+        return;
+      }
+      if (k === "/") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+      if (folder === "drafts") return;
+      if (k === "j" || k === "k") {
+        e.preventDefault();
+        const idx = selectedKey ? threads.findIndex((th) => th.key === selectedKey) : -1;
+        const next = k === "j" ? (selectedKey ? idx + 1 : 0) : (selectedKey ? idx - 1 : threads.length - 1);
+        if (next >= 0 && next < threads.length) handleSelectThread(threads[next].key);
+        return;
+      }
+      const thread = selectedKey ? threads.find((th) => th.key === selectedKey) : null;
+      if (!thread) return;
+      if (k === "e") {
+        archiveThreadByKey(thread.key);
+      } else if (k === "s") {
+        void setMessageFlags(thread.latest.id, { isStarred: !thread.latest.isStarred });
+      } else if (k === "r") {
+        replyTo(thread.latest);
+      } else if (k === "f") {
+        forwardTo(thread.latest);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   function closeNav() {
     setNavOpen(false);
   }
@@ -245,13 +386,25 @@ function InboxApp({ myAddress }: { myAddress: string }) {
           activeFolder={folder}
           counts={counts}
           myAddress={myAddress}
+          labelDefs={labelDefs}
+          labelCounts={labelCounts}
+          activeLabel={labelFilter}
           onSelectFolder={(f) => {
             setFolder(f);
             setSelectedKey(null);
+            setLabelFilter(null);
             closeNav();
+          }}
+          onSelectLabel={(id) => {
+            setLabelFilter(id);
+            setSelectedKey(null);
           }}
           onCompose={() => {
             setCompose({});
+            closeNav();
+          }}
+          onRequestNew={() => {
+            setRequesting({});
             closeNav();
           }}
           onOpenSettings={() => {
@@ -270,6 +423,8 @@ function InboxApp({ myAddress }: { myAddress: string }) {
           onRefresh={() => void refresh()}
           onOpenNav={() => setNavOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenAISummary={() => setAiSummaryOpen(true)}
+          searchRef={searchRef}
           address={myAddress}
         />
 
@@ -302,36 +457,18 @@ function InboxApp({ myAddress }: { myAddress: string }) {
                 void purgeMessage(id);
                 setSelectedKey(null);
               }}
-              onReply={(msg) =>
-                setCompose({
-                  to: msg.counterparty,
-                  subject: msg.subject.startsWith("Re:") ? msg.subject : `Re: ${msg.subject}`,
-                  threadId: threadKeyOf(msg),
-                })
-              }
-              onForward={(msg) => {
-                // Payment requests forward as human prose, never the raw JSON
-                // envelope (which would leak gibberish to the next recipient).
-                const forwardedBody = msg.payment
-                  ? (() => {
-                      let amount = msg.payment!.amountWei;
-                      try {
-                        amount = formatEther(BigInt(msg.payment!.amountWei));
-                      } catch {
-                        // Keep raw wei on malformed data.
-                      }
-                      return `\n\n---------- Forwarded payment request ----------\nAmount: ${amount} ${msg.payment!.token}${msg.payment!.note ? `\nNote: ${msg.payment!.note}` : ""}`;
-                    })()
-                  : msg.body;
-                return setCompose({
-                  subject: msg.subject.startsWith("Fwd:") ? msg.subject : `Fwd: ${msg.subject}`,
-                  body: `\n\n---------- Forwarded message ----------\nFrom: ${msg.direction === "out" ? myAddress : msg.counterparty}\nDate: ${new Date(msg.createdAt).toLocaleString()}\nSubject: ${msg.subject}\n\n${forwardedBody}`,
-                });
-              }}
+              onReply={(msg) => replyTo(msg)}
+              onForward={(msg) => forwardTo(msg)}
               onRequest={(msg) =>
                 setRequesting({ to: msg.counterparty, threadId: threadKeyOf(msg) })
               }
               onPaid={() => void refresh()}
+              onSummarize={() => setThreadSummaryOpen(true)}
+              labelDefs={labelDefs}
+              labelMap={labelMap}
+              onSetLabels={(id, ids) => void setLabelsForMessage(id, ids)}
+              onCreateLabel={(name, color) => createLabel(name, color)}
+              onDeleteLabel={(id) => void deleteLabel(id)}
             />
           ) : (
             <MessageListPanel
@@ -342,6 +479,10 @@ function InboxApp({ myAddress }: { myAddress: string }) {
               onToggleStar={(id, next) => void setMessageFlags(id, { isStarred: next })}
               onBulk={handleBulk}
               onCompose={() => setCompose({})}
+              labelDefs={labelDefs}
+              labelMap={labelMap}
+              labelFilter={labelFilterDef}
+              onClearLabel={() => setLabelFilter(null)}
               myAddress={myAddress}
             />
           )}
@@ -379,10 +520,29 @@ function InboxApp({ myAddress }: { myAddress: string }) {
         myAddress={myAddress}
       />
 
+      <AISummaryModal
+        open={aiSummaryOpen}
+        onClose={() => setAiSummaryOpen(false)}
+        messages={unreadInbox}
+        onSelectMessage={openMessageById}
+        mode="inbox"
+      />
+
+      {selectedThread && (
+        <AISummaryModal
+          open={threadSummaryOpen}
+          onClose={() => setThreadSummaryOpen(false)}
+          messages={selectedThread.messages}
+          onSelectMessage={openMessageById}
+          mode="thread"
+        />
+      )}
+
       {requesting && (
         <RequestPaymentModal
-          to={requesting.to}
+          initialTo={requesting.to}
           threadId={requesting.threadId}
+          contacts={contacts}
           onClose={() => setRequesting(null)}
           onSent={() => void refresh()}
         />

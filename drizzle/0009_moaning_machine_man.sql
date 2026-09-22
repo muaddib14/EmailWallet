@@ -1,0 +1,1 @@
+ALTER TABLE "payment_receipts" ADD COLUMN "token_address" text;

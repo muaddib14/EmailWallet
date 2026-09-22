@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { formatEther } from "viem";
 import { Archive, Mail, MailOpen, Star, Trash2, X, Copy, Check } from "lucide-react";
-import type { Thread } from "@/lib/useInboxMessages";
+import type { PaymentRequest, Thread } from "@/lib/useInboxMessages";
+import { formatTokenAmount } from "@/lib/tokens";
+import { LABEL_STYLES, type Label } from "@/lib/useLabels";
 import type { Folder } from "./types";
 import { FOLDER_LABELS } from "./types";
 import { ContactAvatar, ContactLabel } from "./ContactName";
 import { ReceiptIcon } from "./ReadReceipt";
+import { LabelChips } from "./LabelPicker";
 
 function timeAgo(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -19,15 +21,10 @@ function timeAgo(iso: string) {
   return `${Math.floor(hours / 24)}d`;
 }
 
-function paymentSnippet(msg: { payment: { amountWei: string; token: string; note: string } | null }) {
+function paymentSnippet(msg: { payment: PaymentRequest | null }) {
   if (!msg.payment) return null;
-  let amount = msg.payment.amountWei;
-  try {
-    amount = formatEther(BigInt(msg.payment.amountWei));
-  } catch {
-    // Fall back to raw wei on malformed data.
-  }
-  return `${amount} ${msg.payment.token}${msg.payment.note ? ` · ${msg.payment.note}` : ""}`;
+  const amount = formatTokenAmount(msg.payment.amountWei, msg.payment.tokenDecimals, msg.payment.token);
+  return `${amount}${msg.payment.note ? ` · ${msg.payment.note}` : ""}`;
 }
 
 export type BulkAction = "read" | "unread" | "archive" | "trash";
@@ -40,6 +37,10 @@ export default function MessageListPanel({
   onToggleStar,
   onBulk,
   onCompose,
+  labelDefs,
+  labelMap,
+  labelFilter,
+  onClearLabel,
   myAddress,
 }: {
   folder: Folder;
@@ -49,6 +50,10 @@ export default function MessageListPanel({
   onToggleStar: (id: string, next: boolean) => void;
   onBulk: (keys: string[], action: BulkAction) => void;
   onCompose: () => void;
+  labelDefs: Label[] | null;
+  labelMap: Record<string, string[]>;
+  labelFilter: Label | null;
+  onClearLabel: () => void;
   myAddress: string;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -109,6 +114,17 @@ export default function MessageListPanel({
           <span className="text-xs text-neutral-400 font-geist">
             {threads.length} {threads.length === 1 ? "thread" : "threads"}
           </span>
+          {labelFilter && (
+            <button
+              onClick={onClearLabel}
+              title="Clear label filter"
+              className={`ml-1 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-geist font-medium ${LABEL_STYLES[labelFilter.color].chip}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${LABEL_STYLES[labelFilter.color].dot}`} />
+              {labelFilter.name}
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
         {selected.size > 0 && (
@@ -237,9 +253,15 @@ export default function MessageListPanel({
                     >
                       {msg.subject}
                     </span>
-                    <span className="text-sm text-neutral-400 font-geist truncate hidden sm:inline">
-                      — {paymentSnippet(msg) ?? msg.body}
-                    </span>
+                  <span className="text-sm text-neutral-400 font-geist truncate hidden sm:inline">
+                    — {paymentSnippet(msg) ?? msg.body}
+                  </span>
+                  <span className="hidden md:inline-flex shrink-0">
+                    <LabelChips
+                      labelIds={[...new Set(thread.messages.flatMap((m) => labelMap[m.id] ?? []))]}
+                      labels={labelDefs}
+                    />
+                  </span>
                   </span>
 
                   <button

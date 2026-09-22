@@ -88,6 +88,15 @@ select {
   }
 }
 
+@keyframes showcaseProgress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 @keyframes slideInBlur {
   0% {
     opacity: 0;

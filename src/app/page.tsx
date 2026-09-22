@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Banknote, Check, Lock, ShieldCheck, X } from "lucide-react";
+import { ArrowRight, Check, X } from "lucide-react";
 import SoftGlow from "@/components/SoftGlow";
+import FeatureShowcase from "@/components/FeatureShowcase";
 import MobileMenuButton from "@/components/MobileMenuButton";
 import Marquee from "@/components/Marquee";
 import { WALLETS } from "@/components/wallet-data";
@@ -18,24 +20,6 @@ const US_POINTS = [
   "Every message cryptographically signed",
   "End-to-end encrypted, zero-knowledge storage",
   "Request & receive payment from any thread",
-];
-
-const FEATURES = [
-  {
-    icon: ShieldCheck,
-    title: "Signed & Verifiable",
-    body: "Every message carries a wallet signature over a hash of the plaintext. Anyone can verify who sent it via a public proof link — without ever seeing the content.",
-  },
-  {
-    icon: Lock,
-    title: "End-to-End Encrypted",
-    body: "Subject and body are encrypted in your browser with a key derived from your wallet signature. The server only ever sees ciphertext it can't open.",
-  },
-  {
-    icon: Banknote,
-    title: "In-App Payments",
-    body: "Request or receive payment directly inside a thread, settled and verified on-chain — no separate invoicing tool needed.",
-  },
 ];
 
 const PROTOCOL_STEPS = [
@@ -62,16 +46,16 @@ const PROTOCOL_STEPS = [
 const STATS = [
   { label: "Wallets Signed In", value: "25", body: "With a real wallet signature. No accounts, no bots possible.", featured: false },
   { label: "Encryption Keys", value: "17", body: "Wallets ready to receive end-to-end encrypted mail.", featured: false },
-  { label: ".mail Names", value: "9", body: "Claimed, now mintable as NFTs.", featured: true },
+  { label: "Private Aliases", value: "∞", body: "Yours only — saved in your browser, never on-chain.", featured: true },
   { label: "Contact Books", value: "7", body: "People saving people, not addresses.", featured: false },
 ];
 
-const CLAIMED_NAMES = ["deez.mail", "fatahh.mail", "glitcha.mail", "namiya.mail", "trump.mail"];
+const CLAIMED_NAMES = ["Mom", "Treasury", "Auditor", "Cofounder", "Vault"];
 
 const SHIP_LOG = [
-  { day: "D1", body: "Launch · names · signed mail · read receipts" },
-  { day: "D2", body: "Labels · public verifier · E2E encryption" },
-  { day: "D3", body: "Pay from the inbox · names as NFTs · furnace" },
+  { day: "D1", body: "Launch · aliases · signed mail · read receipts" },
+  { day: "D2", body: "Threads · public verifier · E2E encryption" },
+  { day: "D3", body: "Pay from the inbox · testnet · wallet picker" },
 ];
 
 export default function Home() {
@@ -82,9 +66,7 @@ export default function Home() {
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-4 pl-4">
           <nav className="flex mt-6 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-semibold tracking-tight text-neutral-900 font-geist">
-                Wallet Mail
-              </span>
+              <Image src="/wordmark.png" alt="Quil" width={129} height={50} className="h-7 w-auto" priority />
             </Link>
 
             <div className="hidden md:flex md:gap-x-2 bg-white border-neutral-200 border rounded-full pt-1 pr-1 pb-1 pl-1 shadow-sm gap-x-2 gap-y-1 items-center">
@@ -95,7 +77,7 @@ export default function Home() {
                 Features
               </a>
               <a href="#pricing" className="hover:text-neutral-900 text-sm font-medium text-neutral-500 font-geist pt-2 pr-3 pb-2 pl-3">
-                Naming
+                Aliases
               </a>
               <div className="relative inline-block group text-xs rounded-full animate-[slideInBlur_0.8s_ease-out_1.2s_forwards]">
                 <NavConnectButton />
@@ -117,7 +99,7 @@ export default function Home() {
               className="sm:text-lg animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both] text-base font-normal text-neutral-500 font-geist max-w-2xl mt-6 mr-auto ml-auto"
             >
               No accounts, no passwords. Sign in with any EVM wallet, message any address by
-              name, and every message is signed and end-to-end encrypted on Robinhood Chain.
+              private alias, and every message is signed and end-to-end encrypted on Robinhood Chain.
             </p>
             <div
               className="flex flex-col sm:flex-row animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.4s_both] mt-8 gap-x-3 gap-y-3 items-center justify-center"
@@ -170,7 +152,7 @@ export default function Home() {
             </svg>
             <p className="sm:text-xl leading-relaxed text-lg text-neutral-700 font-geist relative">
               Crypto communities are still stuck DMing on platforms that don&apos;t know a
-              wallet from a username. Wallet Mail signs every message with your key, encrypts
+              wallet from a username. Quil signs every message with your key, encrypts
               it before it leaves your browser, and lets anyone verify who really sent it — no
               account required, no server that can read your inbox.
             </p>
@@ -222,7 +204,7 @@ export default function Home() {
                   </span>
                 </span>
               </div>
-              <h3 className="text-xl font-medium text-neutral-900 font-geist">Wallet Mail</h3>
+              <h3 className="text-xl font-medium text-neutral-900 font-geist">Quil</h3>
               <ul className="space-y-4">
                 {US_POINTS.map((point) => (
                   <li key={point} className="flex items-center gap-3 text-neutral-800">
@@ -240,50 +222,25 @@ export default function Home() {
 
       {/* 3. SERVICES (Core Features) */}
       <section
-        className="sm:px-6 lg:px-8 max-w-7xl z-10 mr-auto ml-auto pt-8 pr-6 pb-20 pl-6 relative"
+        className="sm:px-6 lg:px-8 max-w-7xl z-10 mr-auto ml-auto pt-12 pr-6 pb-24 pl-6 relative"
         id="services"
       >
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-          <div>
-            <p className="text-sm font-medium text-neutral-400 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
-              Core Features
-            </p>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter text-neutral-900 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
-              Everything Email Should&apos;ve Been
-            </h2>
-            <p className="mt-3 text-base text-neutral-500 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both]">
-              Three pillars: identity, privacy, and payment — all native to your wallet.
-            </p>
-          </div>
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <p className="text-sm font-medium text-neutral-400 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
+            Core Features
+          </p>
+          <h2 className="mt-2 text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter text-neutral-900 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.2s_both]">
+            Everything Email Should&apos;ve Been
+          </h2>
+          <p className="mt-4 text-base text-neutral-500 font-geist animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.3s_both]">
+            Three pillars: identity, privacy, and payment — all native to your wallet.
+          </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3 gap-x-6 gap-y-6">
-          {FEATURES.map((feature, i) => {
-            const Icon = feature.icon;
-            return (
-              <div
-                key={feature.title}
-                className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm animate-on-scroll group hover:shadow-md hover:-translate-y-0.5 transition-all md:col-span-1"
-                style={{ animation: `fadeSlideIn 1s ease-out ${0.5 + i * 0.1}s both` }}
-              >
-                <div className="sm:p-8 pt-6 pr-6 pb-6 pl-6 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="p-2 border rounded-lg bg-green-50 border-green-200">
-                      <Icon className="w-6 h-6 text-green-700" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-medium tracking-tight font-geist text-neutral-900">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-3 text-sm text-neutral-500 font-geist leading-relaxed">
-                    {feature.body}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+        <FeatureShowcase />
 
-          <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-900 md:col-span-3 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.4s_both] mt-6">
+        <div className="grid mt-6 sm:mt-8">
+          <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-900 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.4s_both]">
             <div
               className="absolute inset-0"
               style={{
@@ -294,24 +251,24 @@ export default function Home() {
             <div className="p-8 sm:p-12 relative z-20 h-full flex flex-col justify-center max-w-xl">
               <div className="flex items-center gap-2 mb-4">
                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium font-geist border-green-400/30 bg-green-400/15 text-green-300">
-                  Naming
+                  Aliases
                 </span>
               </div>
               <h3 className="text-3xl sm:text-4xl font-geist tracking-tighter text-white">
-                Trade <span className="text-green-400">0x71C9...4aB2</span> for{" "}
-                <span className="text-green-400">maya.mail</span>
+                Call <span className="text-green-400">0x71C9...4aB2</span> whatever{" "}
+                <span className="text-green-400">you like</span>
               </h3>
               <p className="mt-4 text-base sm:text-lg text-white/70 font-geist">
-                Mint a human-readable name as a transferable NFT. It resolves to your address
-                and encryption key — no more copy-pasting 42-character wallet addresses into a
-                &quot;To&quot; field.
+                Save private aliases that live only in your browser — no registry, no mint,
+                nobody else sees them. Type &quot;Maya&quot; instead of pasting a 42-character
+                address into a &quot;To&quot; field.
               </p>
               <div className="mt-8">
                 <a
-                  href="#pricing"
+                  href="/inbox"
                   className="inline-flex items-center gap-2 text-sm font-medium text-neutral-900 bg-white rounded-lg px-4 py-2 hover:bg-neutral-200 transition font-geist"
                 >
-                  See Naming Fees
+                  Try it in your inbox
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </div>
@@ -321,7 +278,7 @@ export default function Home() {
       </section>
 
       {/* 4. PROCESS PATH */}
-      <section className="border-y border-neutral-100 bg-neutral-50 pt-24 pb-24 relative">
+      <section className="border-y border-neutral-100 bg-neutral-50 pt-24 pb-24 relative" id="process">
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-6 pl-6">
           <div className="text-center mb-16 animate-on-scroll [animation:fadeSlideIn_1s_ease-out_0.1s_both]">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-geist tracking-tighter text-neutral-900">
@@ -439,7 +396,7 @@ export default function Home() {
                   </span>
                 ))}
                 <span className="text-[11px] font-geist text-neutral-400 rounded-full px-3 py-1">
-                  +4 more
+                  + unlimited
                 </span>
               </div>
             </article>
@@ -489,11 +446,11 @@ export default function Home() {
 
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <HeroConnectButton />
-            <a
+              <a
               href="#pricing"
               className="inline-flex items-center gap-2 text-base font-medium text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-full pt-3 pr-6 pb-3 pl-6 font-geist transition-colors"
             >
-              See Naming Fees
+              See the numbers
             </a>
           </div>
         </div>
@@ -503,7 +460,7 @@ export default function Home() {
       <footer className="border-t border-neutral-100 bg-white px-6 py-14 relative">
         <div className="max-w-6xl mx-auto grid sm:grid-cols-3 gap-10 text-sm">
           <div>
-            <h4 className="font-geist font-medium mb-2 text-neutral-900">Wallet Mail</h4>
+            <Image src="/wordmark.png" alt="Quil" width={129} height={50} className="h-6 w-auto mb-3" />
             <p className="text-neutral-500 font-geist max-w-xs">
               Email for wallets. Sign in with your key, message any address, every word
               encrypted and signed. Built on Robinhood Chain.
@@ -524,7 +481,7 @@ export default function Home() {
               </li>
               <li>
                 <a href="#pricing" className="hover:text-neutral-900 transition-colors">
-                  Naming
+                  Aliases
                 </a>
               </li>
             </ul>
@@ -546,7 +503,7 @@ export default function Home() {
           </div>
         </div>
         <p className="max-w-6xl mx-auto mt-10 pt-6 border-t border-neutral-100 text-xs text-neutral-400 font-geist">
-          © 2026 Wallet Mail. Not affiliated with Robinhood Markets, Inc.
+          © 2026 Quil. Not affiliated with Robinhood Markets, Inc.
         </p>
       </footer>
     </div>

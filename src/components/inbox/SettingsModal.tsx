@@ -113,6 +113,7 @@ export default function SettingsModal({ open, onClose, myAddress }: Props) {
     return () => clearTimeout(timer);
   }, [savedFlash]);
 
+
   async function checkPublished() {
     if (!myPublicKey) {
       setKeyStatus("error");
@@ -296,9 +297,32 @@ export default function SettingsModal({ open, onClose, myAddress }: Props) {
           </Group>
 
           <p className="px-6 py-4 text-[11px] leading-relaxed text-neutral-400 font-geist">
-            Wallet Mail MVP · Signed &amp; end-to-end encrypted on Robinhood Chain.
+            Quil MVP · Signed &amp; end-to-end encrypted on Robinhood Chain.
             Not affiliated with Robinhood Markets, Inc.
           </p>
+          <div className="px-6 pb-5">
+            <p className="text-[11px] font-geist font-semibold uppercase tracking-[0.08em] text-neutral-400 mb-2">
+              Keyboard shortcuts
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+              {[
+                ["C", "New mail"],
+                ["/", "Search"],
+                ["J / K", "Next / previous thread"],
+                ["E", "Archive thread"],
+                ["S", "Star latest"],
+                ["R / F", "Reply / forward"],
+                ["Esc", "Back"],
+              ].map(([key, label]) => (
+                <p key={key} className="flex items-center gap-2 text-[11px] font-geist text-neutral-500">
+                  <kbd className="rounded-md border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px] text-neutral-700 shrink-0">
+                    {key}
+                  </kbd>
+                  {label}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>,

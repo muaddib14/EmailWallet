@@ -1,4 +1,4 @@
-# Wallet Mail — MVP Status
+# Quil — MVP Status
 
 Repo: `github.com/muaddib14/EmailWallet`
 Stack: Next.js 16 (App Router) · Tailwind v4 · wagmi/viem · Neon Postgres (Drizzle ORM) · tweetnacl
@@ -6,7 +6,7 @@ Last updated: 2026-09-21
 
 ## Ringkasan
 
-Wallet Mail adalah email untuk wallet — sign in pakai wallet EVM (bukan password), setiap pesan ditandatangani wallet pengirim dan dienkripsi end-to-end di browser sebelum masuk server. Terinspirasi dari RobinMail, dibangun ulang dari nol.
+Quil adalah email untuk wallet — sign in pakai wallet EVM (bukan password), setiap pesan ditandatangani wallet pengirim dan dienkripsi end-to-end di browser sebelum masuk server. Terinspirasi dari RobinMail, dibangun ulang dari nol.
 
 Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di bawah sudah **beneran jalan dan sudah ditest end-to-end** (script otomatis, bukan cuma "kelihatannya jalan"), kecuali yang eksplisit ditandai belum.
 
@@ -50,27 +50,42 @@ Ini bukan prototype UI doang — auth, enkripsi, database, dan semua fitur di ba
 - **Read receipt**: tiap flag row nyimpen `readAt` (di-stamp pas pertama kali dibuka). Query list nge-join flag row sisi lawan, jadi pengirim lihat ✓✓ hijau + waktu dibaca di list Sent & detail pesan ("Read · <waktu>" / "Sent · not read yet"). Self-send gak ada receipt. Data di-refresh otomatis pas pesan terkirim dibuka
 
 ### 5. In-App Payments (testnet, tanpa uang asli)
-- Request = pesan terenkripsi ber-envelope JSON (`kind: payment-request`) — nominal privat, tanpa tabel request
-- Tombol Request di thread (modal: jumlah tETH + catatan, max 1000) → terkirim dalam thread yang sama
+- Request = pesan terenkripsi ber-envelope JSON (`kind: payment-request`) — nominal privat, tanpa tabel request. Bisa dalam thread ATAU cold (tombol Request di sidebar → thread baru)
+- Token: native tETH + ERC-20 apa pun (paste kontrak → metadata dibaca live dari chain; USDG resmi `0x5fc5…d168` 6 desimal cuma ada di mainnet jadi jujur disabled di testnet)
+- Tombol Request di thread (modal: jumlah + catatan, max 1000) → terkirim dalam thread yang sama
 - Card payment di thread: Unpaid (tombol Pay sisi payer) / Waiting (sisi requester) / Partial / Paid ✓ + link explorer testnet
-- Pay: wajib switch ke Robinhood Chain Testnet → `sendTransaction` native → `POST /api/payments` verifikasi via RPC (tx ada, receipt sukses, from=payer, to=requester native langsung, value > 0, hash belum diklaim — unique index anti double-claim)
-- Server simpan nilai teramati (`amount_wei`, publik on-chain); client bandingkan dengan nominal terenkripsi → full vs partial. Server tidak pernah lihat nominal ekspektasi
-- Preflight terverifikasi: RPC chainId 46630, tx mainnet tidak kelihatan di testnet, envelope roundtrip OK
+- Pay: wajib switch ke Robinhood Chain Testnet → `sendTransaction` native / `transfer` ERC-20 → `POST /api/payments` verifikasi via RPC (tx ada, receipt sukses, from=payer, native langsung / log Transfer cocok, value > 0, hash belum diklaim — unique index anti double-claim)
+- Server simpan nilai + kontrak token teramati (publik on-chain); client bandingkan dengan nominal terenkripsi → full vs partial vs wrong-token. Server tidak pernah lihat nominal ekspektasi
+- Preflight terverifikasi: RPC chainId 46630, tx mainnet tidak kelihatan di testnet, envelope roundtrip + kompat lama OK, kripto attachment (lihat bawah) OK
 
-### 6. Database (Neon Postgres via Drizzle)
+### 6. Labels (per-viewer, kayak flags)
+- Tabel `labels` (nama unik per owner, warna dari palet tetap) + `message_labels`; sisi lawan tidak pernah lihat label-mu
+- Picker per pesan (checklist + buat baru + hapus), chips di list/detail/sidebar, filter label gabung folder + search
+- Nempel di endpoint PATCH messages yang sama (optimistic update)
+
+### 7. Attachments terenkripsi (Vercel Blob, Hobby-cukup)
+- File key acak → secretbox untuk bytes + nama file; key di-box sekali untuk kedua belah pihak. Server & Blob cuma lihat ciphertext + ukuran/mime
+- Compose: paperclip (max 5 file @5MB), upload setelah pesan terkirim (gagal upload ≠ gagal kirim). Detail: chips + download-decrypt. Tanpa `BLOB_READ_WRITE_TOKEN` tombol sembunyi, upload 503
+- Desain hemat kuota Hobby: tanpa listing, 1 upload = 1 advanced op, 5MB/file dari 1GB/bulan
+- Preflight terverifikasi: roundtrip dua sisi, stranger ditolak, tamper ditolak, tidak ada plaintext bocor
+
+### 8. Shortcuts (inbox)
+- `C` compose, `/` search, `J/K` pindah thread, `E` archive, `S` star, `R/F` reply/forward, `Esc` back. Daftar di Settings. Nonaktif saat ngetik/modal terbuka / di folder drafts
+
+### 9. Database (Neon Postgres via Drizzle)
 Tabel: `wallets`, `messages`, `message_flags` (per-user, lihat poin di atas), `drafts`, `sessions`, `login_nonces`, `names` (siap tapi belum ada yang isi — lihat bagian "Belum")
 
-### 7. Keamanan (hasil audit + fix)
+### 10. Keamanan (hasil audit + fix)
 - ✅ Session replay attack — closed (nonce sekali pakai + atomic consume)
 - ✅ Limit ukuran payload (`20KB`/field) di messages & drafts — cegah storage abuse
 - ✅ Rate limiting di `/api/session`, `/api/session/nonce`, `/api/messages`, `/api/wallets/publish-key` — in-memory, per-instance (jujur: bukan distributed, tapi nutup kasus umum)
 - ✅ Validasi panjang/format `encryptionPublicKey`
 
-### 8. Welcome Message (fitur baru, terinspirasi Proton)
-- Wallet baru yang pertama kali publish encryption key otomatis dapat **3 pesan resmi** dari wallet sistem ("Wallet Mail Team") — pesan asli, ditandatangani & dienkripsi lewat jalur yang sama kayak pesan biasa (bukan data dummy)
+### 11. Welcome Message (fitur baru, terinspirasi Proton)
+- Wallet baru yang pertama kali publish encryption key otomatis dapat **3 pesan resmi** dari wallet sistem ("Quil Team") — pesan asli, ditandatangani & dienkripsi lewat jalur yang sama kayak pesan biasa (bukan data dummy)
 - Butuh `SYSTEM_WALLET_PRIVATE_KEY` di env (sudah di-generate, ada di `.env` lokal, **belum** di-set di Vercel)
 
-### 9. Logo Wallet Resmi
+### 12. Logo Wallet Resmi
 - MetaMask & Rabby: SVG resmi dari sumber asli mereka (metamask.io/assets, RabbyHub/logo GitHub) — bukan tebakan/scrape pihak ketiga
 - Robinhood Wallet, WalletConnect, Coinbase Wallet: dari simple-icons (registry brand SVG terverifikasi)
 
@@ -80,7 +95,7 @@ Tabel: `wallets`, `messages`, `message_flags` (per-user, lihat poin di atas), `d
 
 | Item | Status |
 |---|---|
-| **Naming system** (mint nama `.mail` jadi NFT) | Tabel `names` sudah ada, tapi **belum ada smart contract, belum ada UI mint**. Compose ke nama (`maya.mail`) akan selalu gagal resolve karena gak ada data |
+| **Naming system** | ✅ Diputuskan sesi ini: **tidak ada NFT publik** (privacy-first). Naming = alias privat lokal (sudah jadi). Tabel `names` + API `/api/names` yang kosong di-drop (migrasi `0008`), copy landing dijujurkan |
 | **Robinhood Chain RPC asli** | wagmi masih pakai `mainnet` sebagai placeholder — chain ID/RPC resmi Robinhood Chain belum ketemu sumber terverifikasi |
 | **Deploy Vercel** | Kode sudah siap deploy, tapi `vercel login` butuh browser auth manual dari kamu. `DATABASE_URL` & `SYSTEM_WALLET_PRIVATE_KEY` juga belum di-set di Vercel env vars |
 | **Settings** | ✅ Sudah (sesi ini): modal Settings — wallet + copy address, display name lokal (muncul di topbar, tidak ke server), encryption public key + status publish + tombol Publish now, sign out, about |

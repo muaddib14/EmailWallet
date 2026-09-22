@@ -9,7 +9,7 @@ const MAX_LENGTH = 32;
 /**
  * A per-browser pet name for an address ("Mom", "Treasury", ...). Stored in
  * localStorage keyed by lowercase address — it never leaves the browser, so
- * unlike .mail NFT names it can't be scraped into a global directory.
+ * unlike .quil NFT names it can't be scraped into a global directory.
  */
 export function getDisplayName(address: string): string {
   try {

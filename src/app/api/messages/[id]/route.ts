@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentAddress } from "@/lib/session";
-import { markMessage, purgeMessageForAddress } from "@/lib/db/queries";
+import { markMessage, purgeMessageForAddress, setMessageLabels } from "@/lib/db/queries";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const address = await currentAddress();
@@ -17,14 +17,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (typeof body?.isArchived === "boolean") patch.isArchived = body.isArchived;
   if (typeof body?.isDeleted === "boolean") patch.isDeleted = body.isDeleted;
 
-  if (Object.keys(patch).length === 0) {
+  // Labels travel separately (array of the viewer's own label ids) but ride
+  // the same endpoint so one optimistic update covers everything.
+  const labelIds =
+    Array.isArray(body?.labelIds) && body.labelIds.every((v: unknown) => typeof v === "string")
+      ? (body.labelIds as string[])
+      : null;
+
+  if (Object.keys(patch).length === 0 && labelIds === null) {
     return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
   }
 
   // markMessage scopes the update to this viewer's own flag row, so a wallet
   // can only change how a message looks in its own mailbox — never the other
   // side's copy of the same conversation.
-  await markMessage(id, address, patch);
+  if (Object.keys(patch).length > 0) await markMessage(id, address, patch);
+  if (labelIds !== null) await setMessageLabels(id, address, labelIds);
 
   return NextResponse.json({ ok: true });
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   PenSquare,
+  Banknote,
   Inbox as InboxIcon,
   Star,
   Send,
@@ -17,6 +18,7 @@ import {
 import type { Folder } from "./types";
 import { FOLDER_LABELS } from "./types";
 import { useDisplayName } from "@/lib/displayName";
+import { LABEL_STYLES, type Label } from "@/lib/useLabels";
 
 const FOLDER_ICONS: Record<Folder, typeof InboxIcon> = {
   inbox: InboxIcon,
@@ -34,15 +36,25 @@ export default function InboxSidebar({
   activeFolder,
   counts,
   myAddress,
+  labelDefs,
+  labelCounts,
+  activeLabel,
   onSelectFolder,
+  onSelectLabel,
   onCompose,
+  onRequestNew,
   onOpenSettings,
 }: {
   activeFolder: Folder;
   counts: Partial<Record<Folder, number>>;
   myAddress: string;
+  labelDefs: Label[] | null;
+  labelCounts: Record<string, number>;
+  activeLabel: string | null;
   onSelectFolder: (folder: Folder) => void;
+  onSelectLabel: (id: string | null) => void;
   onCompose: () => void;
+  onRequestNew: () => void;
   onOpenSettings: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -85,7 +97,7 @@ export default function InboxSidebar({
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2 min-w-0">
               <span className="text-lg font-semibold tracking-tight text-neutral-900 font-geist truncate">
-                Wallet Mail
+                Quil
               </span>
             </Link>
           )}
@@ -109,6 +121,16 @@ export default function InboxSidebar({
         >
           <PenSquare className="w-4 h-4 shrink-0" />
           {!collapsed && "New mail"}
+        </button>
+        <button
+          onClick={onRequestNew}
+          title="Request payment (testnet)"
+          className={`mt-2 inline-flex items-center gap-2 rounded-full bg-white border border-neutral-200 text-neutral-700 text-sm font-medium font-geist h-10 hover:bg-neutral-50 hover:border-neutral-300 transition-colors ${
+            collapsed ? "w-10 justify-center px-0" : "w-full justify-center"
+          }`}
+        >
+          <Banknote className="w-4 h-4 shrink-0" />
+          {!collapsed && "Request"}
         </button>
       </div>
 
@@ -141,6 +163,44 @@ export default function InboxSidebar({
           );
         })}
       </nav>
+
+      {(labelDefs ?? []).length > 0 && (
+        <div className="px-2 pb-2 shrink-0">
+          {!collapsed && (
+            <p className="px-3 pt-2 pb-1 text-[11px] font-geist font-semibold uppercase tracking-[0.08em] text-neutral-400">
+              Labels
+            </p>
+          )}
+          <div className="space-y-0.5 max-h-40 overflow-y-auto overflow-x-hidden">
+            {(labelDefs ?? []).map((label) => {
+              const isActive = label.id === activeLabel;
+              const count = labelCounts[label.id] ?? 0;
+              return (
+                <button
+                  key={label.id}
+                  onClick={() => onSelectLabel(isActive ? null : label.id)}
+                  title={collapsed ? label.name : undefined}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] font-geist transition-colors ${
+                    collapsed ? "justify-center" : "justify-between"
+                  } ${
+                    isActive
+                      ? "bg-white text-neutral-900 shadow-sm border border-neutral-200"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-white/60"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span className={`h-2 w-2 rounded-full shrink-0 ${LABEL_STYLES[label.color].dot}`} />
+                    {!collapsed && <span className="truncate">{label.name}</span>}
+                  </span>
+                  {!collapsed && count > 0 && (
+                    <span className="text-[11px] text-neutral-400 font-geist shrink-0">{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="p-2 border-t border-neutral-200 space-y-0.5">
         {!collapsed && (

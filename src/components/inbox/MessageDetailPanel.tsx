@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Star,
@@ -12,12 +12,18 @@ import {
   Pencil,
   Share2,
   Banknote,
+  Sparkles,
 } from "lucide-react";
 import type { DecryptedMessage, Thread } from "@/lib/useInboxMessages";
+import type { LabelColor } from "@/lib/db/queries";
+import type { Label } from "@/lib/useLabels";
 import { useDisplayName } from "@/lib/displayName";
 import { ContactAvatar, ContactLabel, shortAddress } from "./ContactName";
 import { ReceiptLabel } from "./ReadReceipt";
 import { PaymentCard } from "./PaymentCard";
+import { AttachmentChips } from "./Attachments";
+import type { AttachmentMeta } from "@/lib/attachments";
+import { LabelChips, LabelPicker } from "./LabelPicker";
 import { toast } from "@/components/Toast";
 
 function AliasEditor({ address }: { address: string }) {
@@ -89,6 +95,12 @@ export default function MessageDetailPanel({
   onForward,
   onRequest,
   onPaid,
+  onSummarize,
+  labelDefs,
+  labelMap,
+  onSetLabels,
+  onCreateLabel,
+  onDeleteLabel,
 }: {
   thread: Thread;
   myAddress: string;
@@ -102,10 +114,34 @@ export default function MessageDetailPanel({
   onForward: (message: DecryptedMessage) => void;
   onRequest: (message: DecryptedMessage) => void;
   onPaid: () => void;
+  onSummarize: () => void;
+  labelDefs: Label[] | null;
+  labelMap: Record<string, string[]>;
+  onSetLabels: (id: string, labelIds: string[]) => void;
+  onCreateLabel: (name: string, color: LabelColor) => Promise<void>;
+  onDeleteLabel: (id: string) => void;
 }) {
   const { messages, latest } = thread;
   const trashed = latest.isDeleted;
   const allArchived = messages.every((m) => m.isArchived);
+
+  // Attachment metadata for the whole thread in one request. Keyed by the
+  // joined message ids so re-renders from flag toggles don't refetch.
+  const [attachMap, setAttachMap] = useState<Record<string, AttachmentMeta[]>>({});
+  const threadIdsKey = messages.map((m) => m.id).join(",");
+  useEffect(() => {
+    if (threadIdsKey === "") return;
+    fetch(`/api/attachments?messageIds=${encodeURIComponent(threadIdsKey)}`)
+      .then((res) => (res.ok ? res.json() : { attachments: [] }))
+      .then((data: { attachments: AttachmentMeta[] }) => {
+        const map: Record<string, AttachmentMeta[]> = {};
+        for (const a of data.attachments ?? []) {
+          (map[a.messageId] ??= []).push(a);
+        }
+        setAttachMap(map);
+      })
+      .catch(() => {});
+  }, [threadIdsKey]);
 
   function copyProofLink() {
     const url = `${window.location.origin}/verify/${latest.id}`;
@@ -169,6 +205,13 @@ export default function MessageDetailPanel({
           {trashed ? (
             <>
               <button
+                onClick={onSummarize}
+                className="p-2 rounded-lg text-violet-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                title="Summarize this thread (AI)"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+              <button
                 onClick={copyProofLink}
                 className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
                 title="Copy public proof link"
@@ -192,6 +235,13 @@ export default function MessageDetailPanel({
             </>
           ) : (
             <>
+              <button
+                onClick={onSummarize}
+                className="p-2 rounded-lg text-violet-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                title="Summarize this thread (AI)"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
               <button
                 onClick={copyProofLink}
                 className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
@@ -244,6 +294,13 @@ export default function MessageDetailPanel({
                     {new Date(message.createdAt).toLocaleString()}
                   </p>
                 </div>
+                <LabelPicker
+                  assigned={labelMap[message.id] ?? []}
+                  labels={labelDefs}
+                  onChange={(ids) => onSetLabels(message.id, ids)}
+                  onCreate={onCreateLabel}
+                  onDelete={onDeleteLabel}
+                />
                 <button
                   onClick={() => onToggleStar(message.id, !message.isStarred)}
                   className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors shrink-0"
@@ -259,9 +316,22 @@ export default function MessageDetailPanel({
                   {message.body}
                 </p>
               )}
+              {(labelMap[message.id] ?? []).length > 0 && (
+                <div className="px-4 pt-3">
+                  <LabelChips labelIds={labelMap[message.id] ?? []} labels={labelDefs} />
+                </div>
+              )}
               {message.payment && (
                 <div className="px-4 py-4">
                   <PaymentCard message={message} onPaid={onPaid} />
+                </div>
+              )}
+              {(attachMap[message.id] ?? []).length > 0 && (
+                <div className="px-4 pb-4">
+                  <AttachmentChips
+                    items={attachMap[message.id] ?? []}
+                    counterparty={message.counterparty}
+                  />
                 </div>
               )}
               {mine && !message.isSelfSend && (

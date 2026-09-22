@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, Menu, RefreshCw, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { useState, type RefObject } from "react";
+import { Check, Copy, Menu, RefreshCw, LogOut, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { useDisplayName } from "@/lib/displayName";
 import { toast } from "@/components/Toast";
@@ -22,6 +22,8 @@ export default function InboxTopbar({
   onRefresh,
   onOpenNav,
   onOpenSettings,
+  onOpenAISummary,
+  searchRef,
   address,
 }: {
   search: string;
@@ -31,6 +33,8 @@ export default function InboxTopbar({
   onRefresh: () => void;
   onOpenNav: () => void;
   onOpenSettings: () => void;
+  onOpenAISummary: () => void;
+  searchRef?: RefObject<HTMLInputElement | null>;
   address: string;
 }) {
   const { signOut } = useWalletAuth();
@@ -51,13 +55,22 @@ export default function InboxTopbar({
         <Menu className="w-5 h-5" />
       </button>
       <input
+        ref={searchRef}
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search mail, names, wallets"
+        placeholder="Search mail, aliases, wallets"
         className="flex-1 max-w-md bg-neutral-50 border border-neutral-200 focus:border-green-600 focus:bg-white rounded-lg px-4 py-2 text-sm font-geist placeholder:text-neutral-400 text-neutral-900 transition-colors"
       />
 
       <div className="flex-1" />
+
+      <button
+        onClick={onOpenAISummary}
+        title="AI inbox summary (BYOK)"
+        className="p-2 rounded-full text-violet-500 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+      >
+        <Sparkles className="w-4 h-4" />
+      </button>
 
       <span className="hidden sm:inline text-xs text-green-700 font-geist">
         {isLoading ? "Syncing..." : `Synced ${timeAgo(lastSyncedAt)}`}

@@ -1,7 +1,7 @@
 import { VerifyPanel } from "@/components/verify/VerifyPanel";
 
 export const metadata = {
-  title: "Verify a message — Wallet Mail",
+  title: "Verify a message — Quil",
 };
 
 export default async function VerifyIdPage({ params }: { params: Promise<{ id: string }> }) {

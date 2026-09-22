@@ -101,3 +101,32 @@ export function HeroConnectButton({ autoOpen }: { autoOpen?: boolean }) {
     </div>
   );
 }
+
+export function CardConnectButton() {
+  const { step, isBusy } = useWalletAuth();
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  if (step === "ready") {
+    return (
+      <Link
+        href="/inbox"
+        className="w-full inline-flex items-center justify-center rounded-full bg-green-600 px-5 py-2.5 text-sm font-medium text-white font-geist transition-colors hover:bg-green-700"
+      >
+        Go to Inbox
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setPickerOpen(true)}
+        disabled={isBusy}
+        className="w-full inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white font-geist transition-colors hover:bg-neutral-800 disabled:opacity-60 disabled:cursor-wait"
+      >
+        {LABELS[step] ?? "Connect Wallet"}
+      </button>
+      <WalletPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
+    </>
+  );
+}

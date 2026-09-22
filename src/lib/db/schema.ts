@@ -8,23 +8,11 @@ export const wallets = pgTable("wallets", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Human-readable names (".mail" style), minted as NFTs on-chain. This table is
-// a fast-read cache of on-chain ownership, not the source of truth — the NFT
-// contract is. Kept here so the inbox can resolve "maya.mail" -> address without
-// an RPC round trip on every compose.
-export const names = pgTable(
-  "names",
-  {
-    id: text("id").primaryKey(), // e.g. "maya.mail"
-    ownerAddress: text("owner_address")
-      .notNull()
-      .references(() => wallets.address, { onDelete: "cascade" }),
-    tokenId: text("token_id"), // ERC-721 token id once minted on-chain
-    mintTxHash: text("mint_tx_hash"),
-    mintedAt: timestamp("minted_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [uniqueIndex("names_owner_idx").on(table.ownerAddress)]
-);
+// Human-readable naming in Quil is private aliases (localStorage, per
+// browser) — deliberately NOT an on-chain NFT directory, which would let
+// anyone enumerate name -> address. There is no global registry to query,
+// so there is no names table. (One existed briefly in early dev, dropped
+// while still empty — see migration history.)
 
 // Messages store ciphertext only. subjectCiphertext/bodyCiphertext are opaque
 // blobs encrypted client-side with a key derived from the recipient's wallet
@@ -95,12 +83,74 @@ export const paymentReceipts = pgTable(
     // compares it to the encrypted request amount to show full vs partial
     // payment — the server never sees the expected amount itself.
     amountWei: text("amount_wei").notNull(),
+    // ERC-20 path: the token contract the observed Transfer logs came from
+    // (null = native transfer). Stored so the client can confirm the payment
+    // used the requested token, not just any token.
+    tokenAddress: text("token_address"),
     verifiedAt: timestamp("verified_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("payment_receipts_message_idx").on(table.messageId),
     uniqueIndex("payment_receipts_tx_idx").on(table.txHash),
   ]
+);
+
+// Labels are per-viewer, like flags: your "Receipts" on a thread is yours
+// alone — the other side never sees it. Colors come from a fixed palette
+// (enforced in the API) so the inbox can't turn into a neon mess.
+export const labels = pgTable(
+  "labels",
+  {
+    id: text("id").primaryKey(), // uuid
+    ownerAddress: text("owner_address")
+      .notNull()
+      .references(() => wallets.address, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("labels_owner_name_idx").on(table.ownerAddress, table.name)]
+);
+
+export const messageLabels = pgTable(
+  "message_labels",
+  {
+    messageId: text("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    address: text("address")
+      .notNull()
+      .references(() => wallets.address),
+    labelId: text("label_id")
+      .notNull()
+      .references(() => labels.id, { onDelete: "cascade" }),
+  },
+  (table) => [uniqueIndex("message_labels_pk").on(table.messageId, table.address, table.labelId)]
+);
+
+// File attachments ride on messages but live in object storage (Vercel
+// Blob), not Postgres — ciphertext bytes go to the blob, and only this
+// metadata row stays in the DB. Everything sensitive is encrypted client-side
+// before upload: file bytes (secretbox under a random file key), the filename
+// (same key), and the file key itself (NaCl box so both sides can unwrap it
+// with their own secret key). The server sees sizes and mime types only.
+export const attachments = pgTable(
+  "attachments",
+  {
+    id: text("id").primaryKey(), // uuid
+    messageId: text("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    blobUrl: text("blob_url").notNull(),
+    sizeBytes: text("size_bytes").notNull(),
+    mime: text("mime").notNull(),
+    filenameCt: text("filename_ct").notNull(), // base64 secretbox
+    filenameNonce: text("filename_nonce").notNull(), // base64
+    wrappedKey: text("wrapped_key").notNull(), // base64 NaCl box
+    wrapNonce: text("wrap_nonce").notNull(), // base64
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("attachments_blob_idx").on(table.blobUrl)]
 );
 
 // Drafts are self-encrypted (owner's own public key, not the recipient's —

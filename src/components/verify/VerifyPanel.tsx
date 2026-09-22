@@ -195,7 +195,7 @@ export function VerifyPanel({ id }: { id: string }) {
 
       <header className="relative max-w-2xl mx-auto px-6 pt-8 flex items-center justify-between">
         <Link href="/" className="text-lg font-semibold tracking-tight font-geist">
-          Wallet Mail
+          Quil
         </Link>
         <Link
           href="/inbox"
@@ -352,7 +352,7 @@ export function VerifyPanel({ id }: { id: string }) {
             href="/"
             className="relative mt-5 inline-flex items-center gap-2 rounded-full bg-green-600 px-6 py-3 text-sm font-semibold font-geist text-white hover:bg-green-500 transition-colors"
           >
-            Get Wallet Mail
+            Get Quil
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -363,7 +363,7 @@ export function VerifyPanel({ id }: { id: string }) {
             className="inline-flex items-center gap-2 text-sm font-geist text-neutral-500 hover:text-neutral-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Wallet Mail
+            Back to Quil
           </Link>
         </div>
       </main>

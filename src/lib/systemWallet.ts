@@ -7,7 +7,7 @@ import { deriveKeyPair, encryptFor, hashPlaintext, publicKeyToBase64, type BoxKe
 import { insertMessage } from "@/lib/db/queries";
 
 /**
- * "Wallet Mail Team" — the app's own wallet, used only to send official
+ * "Quil Team" — the app's own wallet, used only to send official
  * mail (welcome message on first login, future system notices). It goes
  * through the exact same signing + encryption + storage path as any user's
  * message, so it shows up with a real, verifiable signature — not a
@@ -52,7 +52,7 @@ async function getSystemWallet() {
 
 const WELCOME_MESSAGES = [
   {
-    subject: "Welcome to Wallet Mail",
+    subject: "Welcome to Quil",
     body: "This is your first message — and proof the whole system works. It was signed by our wallet and encrypted for yours before it ever touched our database. We can't read it, and neither can anyone else but you.",
   },
   {

@@ -7,7 +7,7 @@ import { NavConnectButton } from "@/components/ConnectWalletButton";
 const LINKS = [
   { href: "#intelligence", label: "Protocol" },
   { href: "#services", label: "Features" },
-  { href: "#pricing", label: "Naming" },
+  { href: "#pricing", label: "Aliases" },
 ];
 
 export default function MobileMenuButton() {
