@@ -65,7 +65,7 @@ async function callModel(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
       "HTTP-Referer": "https://wallet-mail.app",
-      "X-Title": "Quil",
+      "X-Title": "Quill",
     },
     body: JSON.stringify({
       model,

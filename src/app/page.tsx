@@ -66,7 +66,7 @@ export default function Home() {
         <div className="sm:px-6 lg:px-8 max-w-7xl mr-auto ml-auto pr-4 pl-4">
           <nav className="flex mt-6 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/wordmark.png" alt="Quil" width={129} height={50} className="h-7 w-auto" priority />
+              <Image src="/wordmark.png" alt="Quill" width={129} height={50} className="h-7 w-auto" priority />
             </Link>
 
             <div className="hidden md:flex md:gap-x-2 bg-white border-neutral-200 border rounded-full pt-1 pr-1 pb-1 pl-1 shadow-sm gap-x-2 gap-y-1 items-center">
@@ -152,7 +152,7 @@ export default function Home() {
             </svg>
             <p className="sm:text-xl leading-relaxed text-lg text-neutral-700 font-geist relative">
               Crypto communities are still stuck DMing on platforms that don&apos;t know a
-              wallet from a username. Quil signs every message with your key, encrypts
+              wallet from a username. Quill signs every message with your key, encrypts
               it before it leaves your browser, and lets anyone verify who really sent it — no
               account required, no server that can read your inbox.
             </p>
@@ -204,7 +204,7 @@ export default function Home() {
                   </span>
                 </span>
               </div>
-              <h3 className="text-xl font-medium text-neutral-900 font-geist">Quil</h3>
+              <h3 className="text-xl font-medium text-neutral-900 font-geist">Quill</h3>
               <ul className="space-y-4">
                 {US_POINTS.map((point) => (
                   <li key={point} className="flex items-center gap-3 text-neutral-800">
@@ -460,7 +460,7 @@ export default function Home() {
       <footer className="border-t border-neutral-100 bg-white px-6 py-14 relative">
         <div className="max-w-6xl mx-auto grid sm:grid-cols-3 gap-10 text-sm">
           <div>
-            <Image src="/wordmark.png" alt="Quil" width={129} height={50} className="h-6 w-auto mb-3" />
+            <Image src="/wordmark.png" alt="Quill" width={129} height={50} className="h-6 w-auto mb-3" />
             <p className="text-neutral-500 font-geist max-w-xs">
               Email for wallets. Sign in with your key, message any address, every word
               encrypted and signed. Built on Robinhood Chain.
@@ -503,7 +503,7 @@ export default function Home() {
           </div>
         </div>
         <p className="max-w-6xl mx-auto mt-10 pt-6 border-t border-neutral-100 text-xs text-neutral-400 font-geist">
-          © 2026 Quil. Not affiliated with Robinhood Markets, Inc.
+          © 2026 Quill. Not affiliated with Robinhood Markets, Inc.
         </p>
       </footer>
     </div>

@@ -2,8 +2,8 @@ import { VerifyForm } from "@/components/verify/VerifyPanel";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Verify a message — Quil",
-  description: "Check who really signed a Quil message. No wallet or login needed.",
+  title: "Verify a message — Quill",
+  description: "Check who really signed a Quill message. No wallet or login needed.",
 };
 
 export default function VerifyPage() {
@@ -11,7 +11,7 @@ export default function VerifyPage() {
     <div className="min-h-screen bg-white text-neutral-900">
       <header className="max-w-2xl mx-auto px-6 pt-8 flex items-center justify-between">
         <Link href="/" className="text-lg font-semibold tracking-tight font-geist">
-          Quil
+          Quill
         </Link>
         <Link
           href="/inbox"

@@ -8,7 +8,7 @@ export const wallets = pgTable("wallets", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// Human-readable naming in Quil is private aliases (localStorage, per
+// Human-readable naming in Quill is private aliases (localStorage, per
 // browser) — deliberately NOT an on-chain NFT directory, which would let
 // anyone enumerate name -> address. There is no global registry to query,
 // so there is no names table. (One existed briefly in early dev, dropped

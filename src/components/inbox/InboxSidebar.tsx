@@ -97,7 +97,7 @@ export default function InboxSidebar({
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2 min-w-0">
               <span className="text-lg font-semibold tracking-tight text-neutral-900 font-geist truncate">
-                Quil
+                Quill
               </span>
             </Link>
           )}

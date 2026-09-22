@@ -297,7 +297,7 @@ export default function SettingsModal({ open, onClose, myAddress }: Props) {
           </Group>
 
           <p className="px-6 py-4 text-[11px] leading-relaxed text-neutral-400 font-geist">
-            Quil MVP · Signed &amp; end-to-end encrypted on Robinhood Chain.
+            Quill MVP · Signed &amp; end-to-end encrypted on Robinhood Chain.
             Not affiliated with Robinhood Markets, Inc.
           </p>
           <div className="px-6 pb-5">

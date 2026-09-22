@@ -9,7 +9,7 @@
 // window, instead of being a fixed string per address that could be
 // replayed forever if it ever leaked.
 export const SESSION_MESSAGE = (address: string, nonce: string) =>
-  `Sign in to Quil\n\nNonce: ${nonce}\n\nThis signature opens a 24-hour session for ${address}. It does not cost gas and will not trigger a blockchain transaction.`;
+  `Sign in to Quill\n\nNonce: ${nonce}\n\nThis signature opens a 24-hour session for ${address}. It does not cost gas and will not trigger a blockchain transaction.`;
 
 // Deliberately has NO nonce: the derived key must stay stable across logins,
 // or every past message would become permanently undecryptable the next time
@@ -17,4 +17,4 @@ export const SESSION_MESSAGE = (address: string, nonce: string) =>
 // the only place it's persisted is the sessionStorage cache, a tradeoff
 // already made explicit to the user.
 export const ENCRYPTION_MESSAGE = (address: string) =>
-  `Unlock Quil encryption\n\nThis signature derives the private key that decrypts mail for ${address}. Only sign this on wallet-mail.app.`;
+  `Unlock Quill encryption\n\nThis signature derives the private key that decrypts mail for ${address}. Only sign this on wallet-mail.app.`;

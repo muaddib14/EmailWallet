@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
   let url: string;
   try {
-    const blob = await put(`quil/${messageId}/${randomUUID()}.bin`, file, {
+    const blob = await put(`quill/${messageId}/${randomUUID()}.bin`, file, {
       access: "public",
       contentType: "application/octet-stream",
     });

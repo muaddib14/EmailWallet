@@ -17,8 +17,8 @@ const inter = Inter({
 });
 
 const SITE_URL = "https://email-wallet-taupe.vercel.app";
-const SITE_NAME = "Quil";
-const TITLE = "Quil — Encrypted Mail for Wallets";
+const SITE_NAME = "Quill";
+const TITLE = "Quill — Encrypted Mail for Wallets";
 const DESCRIPTION =
   "No accounts, no passwords. Sign in with any EVM wallet, message any address by private alias, and every message is signed and end-to-end encrypted on Robinhood Chain.";
 
