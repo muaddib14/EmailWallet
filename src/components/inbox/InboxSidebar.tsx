@@ -12,8 +12,8 @@ import {
   Archive as ArchiveIcon,
   Trash2,
   Settings,
-  ChevronsLeft,
-  ChevronsRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { Folder } from "./types";
 import { FOLDER_LABELS } from "./types";
@@ -93,7 +93,7 @@ export default function InboxSidebar({
       }`}
     >
       <div className="p-4">
-        <div className="flex items-center justify-between mb-4 px-2">
+        <div className="flex items-center justify-between mb-4">
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2 min-w-0">
               <span className="text-lg font-semibold tracking-tight text-neutral-900 font-geist truncate">
@@ -104,11 +104,15 @@ export default function InboxSidebar({
           <button
             onClick={toggleCollapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-white transition-colors shrink-0 ${
+            className={`p-1.5 rounded-lg border border-transparent text-neutral-400 hover:text-neutral-900 hover:bg-white hover:border-neutral-200 transition-colors shrink-0 ${
               collapsed ? "mx-auto" : ""
             }`}
           >
-            {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+            {collapsed ? (
+              <PanelLeftOpen className="w-4 h-4" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4" />
+            )}
           </button>
         </div>
 
