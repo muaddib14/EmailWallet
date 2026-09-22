@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, Plus, Tag, Trash2 } from "lucide-react";
 import type { LabelColor } from "@/lib/db/queries";
 import { LABEL_STYLES, type Label } from "@/lib/useLabels";
 
 const PALETTE: LabelColor[] = ["green", "blue", "amber", "red", "violet", "neutral"];
+const DROPDOWN_WIDTH = 240; // matches w-60
 
 /** Per-message label picker: checkbox list + inline create + delete. */
 export function LabelPicker({
@@ -26,23 +28,61 @@ export function LabelPicker({
   const [color, setColor] = useState<LabelColor>("green");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Portalled to document.body (see below) so an ancestor's overflow-hidden
+    // (message cards clip to rounded corners) can't clip this dropdown —
+    // position it against the trigger button's own viewport rect instead of
+    // relying on CSS absolute positioning within the clipped parent.
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPos({
+        top: rect.bottom + 4,
+        left: Math.min(rect.right - DROPDOWN_WIDTH, window.innerWidth - DROPDOWN_WIDTH - 8),
+      });
+    }
+
     const onDown = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        boxRef.current &&
+        !boxRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    // Reposition tracks the trigger if the panel scrolls; closing on resize
+    // avoids a stale-position dropdown rather than chasing every edge case.
+    const onScroll = () => {
+      const r = buttonRef.current?.getBoundingClientRect();
+      if (r) {
+        setPos({
+          top: r.bottom + 4,
+          left: Math.min(r.right - DROPDOWN_WIDTH, window.innerWidth - DROPDOWN_WIDTH - 8),
+        });
+      }
+    };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [open ]);
+  }, [open]);
 
   function toggle(id: string) {
     onChange(assigned.includes(id) ? assigned.filter((l) => l !== id) : [...assigned, id]);
@@ -65,6 +105,7 @@ export function LabelPicker({
   return (
     <div ref={boxRef} className="relative shrink-0">
       <button
+        ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
         title="Labels"
         className={`p-1.5 rounded-lg transition-colors ${
@@ -76,8 +117,11 @@ export function LabelPicker({
         <Tag className="w-4 h-4" />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-30 w-60 rounded-2xl border border-neutral-200 bg-white shadow-xl p-2 [animation:modal-dialog-in_0.15s_cubic-bezier(0.16,1,0.3,1)]">
+      {open && pos && typeof document !== "undefined" && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: DROPDOWN_WIDTH }}
+          className="z-[70] rounded-2xl border border-neutral-200 bg-white shadow-xl p-2 [animation:modal-dialog-in_0.15s_cubic-bezier(0.16,1,0.3,1)]">
           {(labels ?? []).length === 0 && (
             <p className="px-2 py-2 text-xs text-neutral-400 font-geist">
               No labels yet — create one below.
@@ -155,7 +199,8 @@ export function LabelPicker({
             </div>
             {error && <p className="mt-1.5 px-1 text-[11px] text-red-600 font-geist">{error}</p>}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
