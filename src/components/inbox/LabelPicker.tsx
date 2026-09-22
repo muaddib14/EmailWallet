@@ -28,7 +28,7 @@ export function LabelPicker({
   const [color, setColor] = useState<LabelColor>("green");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; caretLeft: number } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -41,9 +41,11 @@ export function LabelPicker({
     // relying on CSS absolute positioning within the clipped parent.
     const rect = buttonRef.current?.getBoundingClientRect();
     if (rect) {
+      const left = Math.min(rect.right - DROPDOWN_WIDTH, window.innerWidth - DROPDOWN_WIDTH - 8);
       setPos({
-        top: rect.bottom + 4,
-        left: Math.min(rect.right - DROPDOWN_WIDTH, window.innerWidth - DROPDOWN_WIDTH - 8),
+        top: rect.bottom + 8,
+        left,
+        caretLeft: rect.left + rect.width / 2 - left,
       });
     }
 
@@ -66,9 +68,11 @@ export function LabelPicker({
     const onScroll = () => {
       const r = buttonRef.current?.getBoundingClientRect();
       if (r) {
+        const left = Math.min(r.right - DROPDOWN_WIDTH, window.innerWidth - DROPDOWN_WIDTH - 8);
         setPos({
-          top: r.bottom + 4,
-          left: Math.min(r.right - DROPDOWN_WIDTH, window.innerWidth - DROPDOWN_WIDTH - 8),
+          top: r.bottom + 8,
+          left,
+          caretLeft: r.left + r.width / 2 - left,
         });
       }
     };
@@ -121,7 +125,14 @@ export function LabelPicker({
         <div
           ref={dropdownRef}
           style={{ position: "fixed", top: pos.top, left: pos.left, width: DROPDOWN_WIDTH }}
-          className="z-[70] rounded-2xl border border-neutral-200 bg-white shadow-xl p-2 [animation:modal-dialog-in_0.15s_cubic-bezier(0.16,1,0.3,1)]">
+          className="z-[70] rounded-2xl border border-neutral-200 bg-white text-neutral-900 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)] p-2 [animation:modal-dialog-in_0.15s_cubic-bezier(0.16,1,0.3,1)]">
+          {/* Caret pointing back at the trigger button — without it the
+              portalled dropdown reads as an unrelated floating box. */}
+          <span
+            aria-hidden="true"
+            style={{ left: pos.caretLeft - 6 }}
+            className="absolute -top-1.5 h-3 w-3 rotate-45 border-l border-t border-neutral-200 bg-white"
+          />
           {(labels ?? []).length === 0 && (
             <p className="px-2 py-2 text-xs text-neutral-400 font-geist">
               No labels yet — create one below.
@@ -186,7 +197,7 @@ export function LabelPicker({
                 }}
                 placeholder="New label…"
                 maxLength={24}
-                className="flex-1 min-w-0 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-[13px] font-geist placeholder:text-neutral-400 outline-none focus:border-neutral-900"
+                className="flex-1 min-w-0 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-[13px] font-geist text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-neutral-900"
               />
               <button
                 onClick={() => void handleCreate()}
