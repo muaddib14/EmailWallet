@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { isAddress, parseUnits } from "viem";
-import { useSignMessage } from "wagmi";
+import { useSignTypedData } from "wagmi";
+import { messageTypedData } from "@/lib/eip712";
 import { X, LoaderCircle } from "lucide-react";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
@@ -45,7 +46,7 @@ export default function RequestPaymentModal({
   onSent: () => void;
 }) {
   const { keyPair } = useWalletAuth();
-  const { signMessageAsync } = useSignMessage();
+  const { signTypedDataAsync } = useSignTypedData();
   const [to, setTo] = useState(initialTo ?? "");
   const [choice, setChoice] = useState<TokenChoice>("native");
   const [customAddress, setCustomAddress] = useState("");
@@ -170,7 +171,7 @@ export default function RequestPaymentModal({
       const subjectCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, subject);
       const bodyCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, body);
       const messageHash = hashPlaintext(subject, body);
-      const senderSignature = await signMessageAsync({ message: { raw: messageHash } });
+      const senderSignature = await signTypedDataAsync(messageTypedData(messageHash));
 
       const res = await fetch("/api/messages", {
         method: "POST",

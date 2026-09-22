@@ -5,6 +5,7 @@ import { wallets } from "@/lib/db/schema";
 import { ENCRYPTION_MESSAGE } from "@/lib/authMessages";
 import { deriveKeyPair, encryptFor, hashPlaintext, publicKeyToBase64, type BoxKeyPair } from "@/lib/crypto";
 import { insertMessage } from "@/lib/db/queries";
+import { messageTypedData } from "@/lib/eip712";
 
 /**
  * "Quill Team" — the app's own wallet, used only to send official
@@ -78,7 +79,7 @@ export async function sendWelcomeMessages(toAddress: string, toPublicKeyB64: str
       const subjectCiphertext = encryptFor(toPublicKeyB64, system.keyPair.secretKey, subject);
       const bodyCiphertext = encryptFor(toPublicKeyB64, system.keyPair.secretKey, body);
       const messageHash = hashPlaintext(subject, body);
-      const senderSignature = await system.account.signMessage({ message: { raw: messageHash } });
+      const senderSignature = await system.account.signTypedData(messageTypedData(messageHash));
 
       await insertMessage({
         fromAddress: system.account.address.toLowerCase(),

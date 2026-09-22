@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAddress, recoverMessageAddress } from "viem";
+import { isAddress, recoverTypedDataAddress } from "viem";
 import { currentAddress } from "@/lib/session";
 import { insertMessage, listMessagesForAddress } from "@/lib/db/queries";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { messageTypedData } from "@/lib/eip712";
 
 export async function GET() {
   const address = await currentAddress();
@@ -45,8 +46,8 @@ export async function POST(request: NextRequest) {
   // without ever decrypting the body.
   let recovered: string;
   try {
-    recovered = await recoverMessageAddress({
-      message: { raw: messageHash as `0x${string}` },
+    recovered = await recoverTypedDataAddress({
+      ...messageTypedData(messageHash as `0x${string}`),
       signature: senderSignature as `0x${string}`,
     });
   } catch {

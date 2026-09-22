@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { recoverMessageAddress } from "viem";
+import { recoverTypedDataAddress } from "viem";
+import { messageTypedData } from "@/lib/eip712";
 import {
   ArrowLeft,
   ArrowRight,
@@ -159,8 +160,8 @@ export function VerifyPanel({ id }: { id: string }) {
         // Trustless check, in the browser: recover the signer from the
         // signature and compare it to the claimed sender. The server is
         // never taken at its word.
-        const signer = await recoverMessageAddress({
-          message: { raw: data.messageHash },
+        const signer = await recoverTypedDataAddress({
+          ...messageTypedData(data.messageHash),
           signature: data.senderSignature,
         });
         if (!cancelled) {

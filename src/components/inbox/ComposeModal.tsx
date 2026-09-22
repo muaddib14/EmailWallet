@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Maximize2, Minimize2, Paperclip, X, Trash2, Check } from "lucide-react";
-import { useSignMessage } from "wagmi";
+import { useSignTypedData } from "wagmi";
+import { messageTypedData } from "@/lib/eip712";
 import { useWalletAuth } from "@/lib/useWalletAuth";
 import { resolveRecipient } from "@/lib/resolveRecipient";
 import { encryptFor, hashPlaintext } from "@/lib/crypto";
@@ -57,7 +58,7 @@ export default function ComposeModal({
   onDeleteDraft: (id: string) => Promise<void>;
 }) {
   const { keyPair } = useWalletAuth();
-  const { signMessageAsync } = useSignMessage();
+  const { signTypedDataAsync } = useSignTypedData();
 
   const [to, setTo] = useState(initialTo ?? "");
   const [subject, setSubject] = useState(initialSubject ?? "");
@@ -180,7 +181,7 @@ export default function ComposeModal({
       const subjectCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, finalSubject);
       const bodyCiphertext = encryptFor(recipient.encryptionPublicKey, keyPair.secretKey, body);
       const messageHash = hashPlaintext(finalSubject, body);
-      const senderSignature = await signMessageAsync({ message: { raw: messageHash } });
+      const senderSignature = await signTypedDataAsync(messageTypedData(messageHash));
 
       const res = await fetch("/api/messages", {
         method: "POST",
