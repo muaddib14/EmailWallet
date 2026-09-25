@@ -468,6 +468,17 @@ export default function Home() {
               Email for wallets. Sign in with your key, message any address, every word
               encrypted and signed. Built on Robinhood Chain.
             </p>
+            <a
+              href="https://x.com/quillmailnet"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium font-geist text-neutral-500 hover:text-neutral-900 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              @quillmailnet
+            </a>
           </div>
           <div>
             <h4 className="font-geist font-medium mb-3 text-neutral-900">Product</h4>
