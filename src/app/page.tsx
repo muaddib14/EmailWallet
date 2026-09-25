@@ -79,6 +79,9 @@ export default function Home() {
               <a href="#pricing" className="hover:text-neutral-900 text-sm font-medium text-neutral-500 font-geist pt-2 pr-3 pb-2 pl-3">
                 Aliases
               </a>
+              <Link href="/verify" className="hover:text-neutral-900 text-sm font-medium text-neutral-500 font-geist pt-2 pr-3 pb-2 pl-3">
+                Verify
+              </Link>
               <div className="relative inline-block group text-xs rounded-full animate-[slideInBlur_0.8s_ease-out_1.2s_forwards]">
                 <NavConnectButton />
               </div>

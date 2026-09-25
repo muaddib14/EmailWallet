@@ -8,6 +8,7 @@ const LINKS = [
   { href: "#intelligence", label: "Protocol" },
   { href: "#services", label: "Features" },
   { href: "#pricing", label: "Aliases" },
+  { href: "/verify", label: "Verify" },
 ];
 
 export default function MobileMenuButton() {
